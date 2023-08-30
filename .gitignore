@@ -3,7 +3,6 @@
 
 *~
 *.autosave
-*.a
 *.core
 *.moc
 *.o
@@ -34,9 +33,11 @@ Thumbs.db
 *.rc
 /.qmake.cache
 /.qmake.stash
+build-*/
 
 # qtcreator generated files
 *.pro.user*
+*.user
 CMakeLists.txt.user*
 
 # xemacs temporary files
@@ -69,6 +70,4 @@ CMakeLists.txt.user*
 
 # Binaries
 # --------
-*.dll
 *.exe
-

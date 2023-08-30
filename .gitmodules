@@ -1,0 +1,3 @@
+[submodule "3rdparty/KmcUI"]
+	path = 3rdparty/KmcUI
+	url = https://github.com/Kami-chanw/KmcUI.git

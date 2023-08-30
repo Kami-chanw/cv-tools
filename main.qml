@@ -1,7 +1,8 @@
-import QtQuick
+﻿import QtQuick
 import QtQuick.Window
+import KmcUI.Window
 
-Window {
+ShadowWindow {
     width: 640
     height: 480
     visible: true

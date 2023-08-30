@@ -1,4 +1,4 @@
-# This Python file uses the following encoding: utf-8
+﻿# This Python file uses the following encoding: utf-8
 import sys
 from pathlib import Path
 
@@ -10,6 +10,7 @@ if __name__ == "__main__":
     app = QGuiApplication(sys.argv)
     engine = QQmlApplicationEngine()
     qml_file = Path(__file__).resolve().parent / "main.qml"
+#    engine.addImportPath(Path(__file__).resolve().parent / "3rdparty/KmcUI/src/imports")
     engine.load(qml_file)
     if not engine.rootObjects():
         sys.exit(-1)

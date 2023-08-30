@@ -1,6 +1,9 @@
-{
+﻿{
     "files": [
         "main.py",
         "main.qml"
+    ],
+    "qmlImportPath": [
+        "3rdparty/KmcUI/src/imports"
     ]
 }

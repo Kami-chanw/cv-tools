@@ -13,7 +13,6 @@ Item {
         LineEdit
     }
 
-
     Component {
         id: titleComponent
         Text {

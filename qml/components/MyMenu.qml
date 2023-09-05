@@ -31,7 +31,7 @@ Menu {
     delegate: MenuItem {
         id: menuItem
         implicitWidth: 200
-        implicitHeight: 34
+        implicitHeight: 30
 
         arrow: Canvas {
             x: parent.width - width - 6
@@ -50,15 +50,28 @@ Menu {
             }
         }
 
-        contentItem: Text {
-            leftPadding: menuItem.indicator.width
-            rightPadding: menuItem.arrow.width
-            text: menuItem.text
-            font: menuItem.font
-            color: menuItem.highlighted ? control.palette.text : control.palette.inactive.text
-            horizontalAlignment: Text.AlignLeft
-            verticalAlignment: Text.AlignVCenter
-            elide: Text.ElideRight
+        contentItem: Item {
+            Text {
+                leftPadding: menuItem.indicator.width
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: parent.left
+                text: menuItem.text
+                font: menuItem.font
+                color: menuItem.highlighted ? control.palette.text : control.palette.inactive.text
+                horizontalAlignment: Text.AlignLeft
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideRight
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.right: parent.right
+                rightPadding: menuItem.arrow.width
+                text: menuItem.action.shortcut?.toString() ?? ""
+                font: menuItem.font
+                color: menuItem.highlighted ? control.palette.text : control.palette.inactive.text
+                horizontalAlignment: Text.AlignRight
+                verticalAlignment: Text.AlignVCenter
+            }
         }
 
         background: Item {

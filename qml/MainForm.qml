@@ -6,8 +6,10 @@ import KmcUI.Window
 import KmcUI.Controls
 import KmcUI
 import Qt.labs.folderlistmodel
+import Qt.labs.settings
 import QtCore
 import "./components"
+import CvTools
 
 ShadowWindow {
     id: root
@@ -15,10 +17,13 @@ ShadowWindow {
     resizable: true
     titleButton: TitleBar.Full
     minimumWidth: 850
+
+    readonly property string appName: "CV Tools"
+
     title {
         color: "#181818"
         titleText {
-            text: "CV Tools"
+            text: root.appName
             color: "white"
             anchors.centerIn: title
             font.pointSize: 9
@@ -56,6 +61,22 @@ ShadowWindow {
         Setting = 2
     }
 
+    Settings {
+        id: mainFormSettings
+        property string recentFolder: Qt.resolvedUrl(".")
+        property string recentSession
+    }
+
+    Bridge {
+        id: bridge
+    }
+
+    Component.onCompleted: {
+        if (mainFormSettings.recentSession)
+            testbedPageLoader.item.sessionData = bridge.parseFile(
+                        mainFormSettings.recentSession, imageProvider)
+    }
+
     menuBar: MenuBar {
         id: menuBar
 
@@ -63,12 +84,61 @@ ShadowWindow {
             MyMenu {
                 id: fileMenu
                 title: "&File"
+
+                Action {
+                    text: qsTr("Open File...")
+                    shortcut: "Ctrl+O"
+                    onTriggered: {
+                        openFileDialog.open()
+                    }
+                }
+                FileDialog {
+                    id: openFileDialog
+                    currentFolder: mainFormSettings.recentFolder
+                    nameFilters: ["JPEG files (*.jpg *,jpeg *jpe)", "Portable network graphics (*.png)", "Cv Tools Session File (*.cvsession)"]
+                    onAccepted: {
+                        mainFormSettings.recentFolder = currentFolder
+                        testbedPageLoader.item.sessionData = bridge.parseFile(
+                                    selectedFile, imageProvider)
+                    }
+                }
+
+                FileDialog {
+                    id: saveFileDialog
+                    fileMode: FileDialog.SaveFile
+                }
+
+                FileDialog {
+                    id: exportFileDialog
+                    fileMode: FileDialog.SaveFile
+                }
+
+                Action {
+                    text: qsTr("Save Session")
+                    shortcut: "Ctrl+S"
+                }
+
+                Action {
+                    text: qsTr("Save As...")
+                    onTriggered: saveFileDialog.open()
+                }
+
+                MyMenuSeparator {}
+
+                Action {
+                    text: qsTr("Export...")
+                    shortcut: "Ctrl+E"
+                    onTriggered: exportFileDialog.open()
+                }
             },
             MyMenu {
                 id: viewMenu
                 title: "&View"
             },
-
+            MyMenu {
+                id: editMenu
+                title: "&Edit"
+            },
             MyMenu {
                 id: helpMenu
                 title: "&Help"
@@ -121,8 +191,8 @@ ShadowWindow {
         id: topAppItems
         ListElement {
             name: "Testbed"
-            icon: "qrc:/assets/icons/logger.svg"
-            tooltip: qsTr("Testbed info(Ctrl+1)")
+            icon: "qrc:/assets/icons/testbed.svg"
+            tooltip: qsTr("Testbed (Ctrl+1)")
             shortcut: "Ctrl+1"
             activate: () => {
                           appBarContent.shouldCollapse = false
@@ -136,7 +206,7 @@ ShadowWindow {
         ListElement {
             name: "FileManager"
             icon: "qrc:/assets/icons/file_manager.svg"
-            tooltip: qsTr("File manager(Ctrl+2)")
+            tooltip: qsTr("File manager (Ctrl+2)")
             shortcut: "Ctrl+2"
             activate: () => {
                           appBarContent.shouldCollapse = false
@@ -150,7 +220,7 @@ ShadowWindow {
         ListElement {
             name: "Setting"
             icon: "qrc:/assets/icons/settings.svg"
-            tooltip: qsTr("Settings(Ctrl+3)")
+            tooltip: qsTr("Settings (Ctrl+3)")
             shortcut: "Ctrl+3"
             activate: () => {
                           appBarContent.shouldCollapse = true
@@ -167,11 +237,9 @@ ShadowWindow {
         ListElement {
             name: "Link"
             icon: "qrc:/assets/icons/connect.svg"
-            tooltip: qsTr("Connect(F5)")
+            tooltip: qsTr("Connect (F5)")
             shortcut: "F5"
-            activate: () => {
-                          terminal.setLoggerName(settingPageLoader.settings.loggerName)
-                      }
+            activate: () => {}
         }
     }
 
@@ -260,10 +328,7 @@ ShadowWindow {
                 clip: true
 
                 function switchTo(page) {
-                    if (page === MainForm.PageType.Testbed && !root.isConnected)
-                        stackLayout.currentIndex = MainForm.PageType.Welcome
-                    else
-                        stackLayout.currentIndex = page
+                    stackLayout.currentIndex = page
                 }
 
                 Loader {
@@ -279,8 +344,15 @@ ShadowWindow {
                 }
 
                 Loader {
-                    id: loggerPageLoader
+                    id: testbedPageLoader
                     source: "TestbedPage.qml"
+                    Connections {
+                        target: testbedPageLoader.item
+                        function onSessionDataChanged() {
+                            root.title.titleText.text = testbedPageLoader.item.sessionData.name + " - " + root.appName
+                            stackLayout.switchTo(MainForm.PageType.Testbed)
+                        }
+                    }
                 }
             }
         }

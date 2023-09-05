@@ -1,13 +1,35 @@
 ﻿import QtQuick
 import QtQuick.Controls
+import CvTools
 
-SplitView {
-    property alias text: content.text
-    Text {
-        id: content
-        SplitView.fillHeight: true
-        SplitView.fillWidth: true
-        verticalAlignment: Qt.AlignTop
-        horizontalAlignment: Qt.AlignLeft
+Item {
+    id: root
+    property SessionData sessionData
+
+    Connections {
+        target: imageProvider
+        function onSourceChanged(source) {
+            image.source = source
+        }
+    }
+
+    Connections {
+        function onSessionDataChanged() {}
+    }
+
+    Image {
+        id: image
+        fillMode: Image.PreserveAspectFit
+        anchors.fill: parent
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        onWheel: wheel => {
+                     if (wheel.modifiers & Qt.ControlModifier) {
+
+                         //                         adjustZoom(wheel.angleDelta.y / 120)
+                     }
+                 }
     }
 }

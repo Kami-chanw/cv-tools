@@ -16,7 +16,9 @@
         "qml/components/MySplitView.qml",
         "qml/components/MyTreeView.qml",
         "qml/components/MyTreeViewDelegate.qml",
-        "res.qrc"
+        "res.qrc",
+        "qml/components/MyToolBox.qml",
+        "qml/components/MySplitHandle.qml"
     ],
     "qmlImportPaths": [
         "3rdparty/KmcUI/src/imports"

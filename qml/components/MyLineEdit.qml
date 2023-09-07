@@ -6,6 +6,7 @@ TextField {
     wrapMode: TextEdit.Wrap
     verticalAlignment: TextEdit.AlignVCenter
     color: "#cccccc"
+    placeholderText: "#8E8E8E"
     font.pointSize: 8
 
     property string fullText

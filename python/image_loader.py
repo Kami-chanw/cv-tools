@@ -5,45 +5,55 @@ from PySide6.QtQuick import QQuickImageProvider
 from enum import Enum
 
 
+@QEnum
+class TaskType(Enum):
+    Video, Image, Stream = range(3)
+
+
 class ImageProvider(QQuickImageProvider):
 
-    @QEnum
-    class ProviderType(Enum):
-        Video, Image, Stream = range(3)
-
-    def __init__(self, type: ProviderType) -> None:
+    def __init__(self) -> None:
         super().__init__(
             QQmlImageProviderBase.ImageType.Image,
             QQmlImageProviderBase.Flag.ForceAsynchronousImageLoading)
-        self._frame = None
+        self._frame = []
         self._source = None
-        self.type = type
+        self.type = None
         self._counter = 0
 
     def requestImage(self, id: str, size: QSize,
                      requestedSize: QSize) -> QImage:
-        size = QSize(self._frame.size())
+        index = int(id.split('/')[-2])
+        size = QSize(self._frame[index].size())
         if requestedSize.isValid():
-            return self._frame.scaled(requestedSize)
-        return self._frame
+            return self._frame[index].scaled(requestedSize)
+        return self._frame[index]
 
-    frameChanged = Signal(QImage)
-    sourceChanged = Signal(str)
+    frameChanged = Signal(int)
+    sourceChanged = Signal()
 
-    def setFrame(self, newImage, emit = True):
-        self._frame = newImage
+    def setFrame(self, index, newImage, emit=True):
+        if index >= len(self._frame):
+            self._frame.append(newImage)
+        elif self._frame[index] != newImage:
+            self._frame[index] = newImage
+        else:
+            return
         if emit:
-            self.frameChanged.emit(newImage)
-        self.setSource(f"image://{self.providerId()}/{self.type.name}/{self._counter}")
+            self.frameChanged.emit(index)
+        self.setSource(
+            f"image://{self.providerId()}/{self.type.name}/{index}/{self._counter}"
+        )
 
-    @Property(QImage, fset=setFrame, notify=frameChanged)
+    @Property(list, constant=True)
     def frame(self):
         return self._frame
 
     def setSource(self, newSource):
-        self._source = newSource
-        self._counter += 1
-        self.sourceChanged.emit(newSource)
+        if self._source != newSource:
+            self._source = newSource
+            self._counter += 1
+            self.sourceChanged.emit()
 
     @Property(str, fset=setSource, notify=sourceChanged)
     def source(self):

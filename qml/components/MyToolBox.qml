@@ -11,10 +11,19 @@ ToolBox {
         opacity: 0.15
     }
 
+    sourceSelector: index => {
+                        return {
+                            "source": "../AlgoListItem.qml",
+                            "properties": {
+                                "title": "test"
+                            }
+                        }
+                    }
+
     boxDelegate: ToolBoxDelegate {
         implicitHeight: 22
         contentItem: Text {
-            text: model.title
+            text: "123"
             color: "#CCCCCC"
             verticalAlignment: Text.AlignVCenter
             leftPadding: indicator.implicitWidth
@@ -35,7 +44,7 @@ ToolBox {
 
             ColorIcon {
                 anchors.centerIn: parent
-                source: "qrc:/icons/arrow.svg"
+                source: "qrc:/assets/icons/arrow.svg"
                 rotation: expanded ? 90 : 0
                 height: 13
                 width: 13

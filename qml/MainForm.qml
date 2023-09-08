@@ -56,7 +56,8 @@ ShadowWindow {
         id: backgroundRect
         radius: 10
         color: "#1F1F1F"
-        border.color: "#434343"
+        border.color: "#404040"
+        border.width: 1
         Binding {
             when: root.visibility === Window.Maximized
             backgroundRect.border.width: 0
@@ -97,33 +98,37 @@ ShadowWindow {
         id: algoGroup
         MyMenu {}
     }
-
     Component {
         id: algoAction
         Action {
             required property var index
             onTriggered: {
+                var algorithm = algorithmTreeModel.data(index, Qt.UserRole)
 
+                algoModel.append({
+                                     "title": algorithm.title,
+                                     "algo": algorithm
+                                 })
             }
         }
     }
 
     function createAlgoMenu(parent, parentIndex) {
-        for (var i = 0; i < algorithmModel.rowCount(parentIndex); ++i) {
-            const currentIndex = algorithmModel.index(i, 0, parentIndex)
-            const node = algorithmModel.data(currentIndex, Enums.AlgorithmRole.ItemTypeRole)
+        for (var i = 0; i < algorithmTreeModel.rowCount(parentIndex); ++i) {
+            const currentIndex = algorithmTreeModel.index(i, 0, parentIndex)
+            const node = algorithmTreeModel.data(currentIndex, Qt.UserRole)
             if (node.algorithms !== undefined) {
                 var group = algoGroup.createObject(parent, {
-                                                       "title": algorithmModel.data(currentIndex,
-                                                                                    Qt.DisplayRole)
+                                                       "title": algorithmTreeModel.data(
+                                                                    currentIndex, Qt.DisplayRole)
                                                    })
                 parent.addMenu(group)
-                createAlgoMenu(group, algorithmModel.index(0, 0, parentIndex))
+                createAlgoMenu(group, currentIndex)
             } else {
 
                 var algo = algoAction.createObject(parent, {
-                                                       "text": algorithmModel.data(currentIndex,
-                                                                                   Qt.DisplayRole),
+                                                       "text": algorithmTreeModel.data(
+                                                                   currentIndex, Qt.DisplayRole),
                                                        "enabled": Qt.binding(
                                                                       () => !!root.sessionData),
                                                        "index": currentIndex
@@ -134,7 +139,7 @@ ShadowWindow {
     }
 
     Component.onCompleted: {
-        createAlgoMenu(editMenu, algorithmModel.index(-1, -1))
+        createAlgoMenu(editMenu, algorithmTreeModel.index(-1, -1))
     }
 
     Settings {
@@ -147,6 +152,21 @@ ShadowWindow {
 
     Bridge {
         id: bridge
+    }
+
+    MessageDialog {
+        id: messageDialog
+
+        title: "CV Tools"
+        buttons: MessageDialog.Ok
+    }
+
+    function readSessionData(path) {
+        root.sessionData = bridge.parseFile(path, imageProvider)
+        if (!sessionData) {
+            messageDialog.text = root.sessionData.errorString
+            messageDialog.open()
+        }
     }
 
     Popup {
@@ -197,7 +217,7 @@ ShadowWindow {
         nameFilters: ["JPEG files (*.jpg *,jpeg *jpe)", "Portable network graphics (*.png)", "Cv Tools Session File (*.cvsession)"]
         onAccepted: {
             mainFormSettings.recentOpenFolder = currentFolder
-            root.sessionData = bridge.parseFile(selectedFile, imageProvider)
+            readSessionData(selectedFile)
         }
     }
 
@@ -208,7 +228,6 @@ ShadowWindow {
         nameFilters: ["Cv Tools Session File (*.cvsession)"]
         onAccepted: {
             mainFormSettings.recentSaveFolder = currentFolder
-            console.log(currentFile)
             root.sessionData.save(currentFile)
             mainFormSettings.recentSession = root.sessionData.sessionPath
         }
@@ -264,8 +283,7 @@ ShadowWindow {
                     text: qsTr("Recover Last Session")
                     enabled: !!mainFormSettings.recentSession
                     onTriggered: {
-                        root.sessionData = bridge.parseFile(mainFormSettings.recentSession,
-                                                            imageProvider)
+                        readSessionData(mainFormSettings.recentSession)
                     }
                 }
 
@@ -304,6 +322,7 @@ ShadowWindow {
                 Action {
                     text: qsTr("Open Camera")
                 }
+                MyMenuSeparator {}
             },
             MyMenu {
                 id: helpMenu
@@ -312,16 +331,9 @@ ShadowWindow {
                 Action {
                     text: qsTr("About")
                     onTriggered: {
-                        aboutDialog.open()
+                        messageDialog.text = qsTr("你关于你妈呢")
+                        messageDialog.open()
                     }
-                }
-                MessageDialog {
-                    id: aboutDialog
-
-                    title: "CV Tools"
-                    text: qsTr("你关于你妈呢")
-                    informativeText: qsTr("你关于你妈呢")
-                    buttons: MessageDialog.Ok
                 }
             }
         ]
@@ -520,6 +532,9 @@ ShadowWindow {
 
                     MyToolBox {
                         id: algoList
+                        model: ListModel {
+                            id: algoModel
+                        }
                     }
                 }
             }

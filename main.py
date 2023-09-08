@@ -13,7 +13,7 @@ from KmcUI.PyKmc.models import TreeModel, TreeNode
 from resources import *
 from python.image_loader import *
 from python.bridge import *
-from algorithm import algorithmModel
+from algorithm import algorithmTreeModel
 
 if __name__ == "__main__":
     app = QGuiApplication(sys.argv)
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     engine = QQmlApplicationEngine()
     engine.addImageProvider(imageProvider.providerId(), imageProvider)
     engine.rootContext().setContextProperty("imageProvider",imageProvider)
-    engine.rootContext().setContextProperty("algorithmModel", algorithmModel)
+    engine.rootContext().setContextProperty("algorithmTreeModel", algorithmTreeModel)
     qml_file = QML_PATH / "MainForm.qml"
     engine.addImportPath(KMCUI_PATH / "src/imports")
     engine.load(qml_file)

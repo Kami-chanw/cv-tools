@@ -1,23 +1,21 @@
 ﻿from typing import Optional
 from PySide6.QtCore import Property, QObject, QEnum, Qt
 from enum import Enum
-@QEnum
-class AlgorithmRole(Enum):
-    InformativeRole, EnabledRole = range(Qt.UserRole + 1, Qt.UserRole + 3)
 
-    @staticmethod
-    def defaultRoleNames():
-        return {
-            AlgorithmRole.InformativeRole.value: "informativeText",
-            AlgorithmRole.EnabledRole.value: "enabled"
-        }
+class A(QObject):
+
+    def __init__(self, parent: QObject | None = None) -> None:
+        super().__init__(parent)
+        self._pp = ""
+        self.pp.notify.emit()
+
+    @Property(str)
+    def pp(self):
+        return self._pp
     
-    @classmethod
-    def roleNames(cls):
-        return {}
+    @pp.setter
+    def pp(self, s):
+        self._pp = s
 
-    @classmethod
-    def lastRoleValue(cls):
-        return AlgorithmRole.EnabledRole.value
+a = A()
 
-print(Qt.UserRole + 1 == AlgorithmRole.InformativeRole.value)

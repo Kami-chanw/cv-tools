@@ -16,10 +16,6 @@ import cv2
 import numpy as np
 import pickle
 
-@QmlElement
-class Enums(QObject):
-    QEnum(AlgorithmRole)
-
 
 @QmlElement
 class SessionData(QObject):
@@ -39,7 +35,7 @@ class SessionData(QObject):
         if path.suffix in [".png", ".jpg", ".jpeg", ".jpe"]:
             self._type = TaskType.Image
             self._name = "untitled"
-            self._fileName = path.name
+            self._filePath = path
             reader = QImageReader(str(path))
             self._origin_image = reader.read()
             if self._origin_image is None:
@@ -54,17 +50,21 @@ class SessionData(QObject):
                 data = pickle.load(f)
             for name, value in vars(self).items():
                 value = data[name]
+                if not self._filePath.exists():
+                    raise FileNotFoundError("Original file not found.")
         else:
             raise ValueError("unknown file")
-    
+
     def _qt2cv(self, qimage):
         if qimage.format() == QImage.Format_RGB32:
             qimage = qimage.convertToFormat(QImage.Format_RGB888)
 
-        img = np.frombuffer(qimage.bits(), dtype=np.uint8).reshape(qimage.height(), qimage.width(), 4)
+        img = np.frombuffer(qimage.bits(),
+                            dtype=np.uint8).reshape(qimage.height(),
+                                                    qimage.width(), 4)
         return cv2.cvtColor(img, cv2.COLOR_RGBA2BGR)
 
-    def _cv2qt(self,cv_img):
+    def _cv2qt(self, cv_img):
         if len(cv_img.shape) == 2:  # 灰度图像
             height, width = cv_img.shape
             bytes_per_line = width
@@ -78,16 +78,15 @@ class SessionData(QObject):
             raise ValueError("Unsupported image format")
 
         return QImage(cv_img.data, width, height, bytes_per_line, image_format)
-    
-    def _trimPath(self, url : QUrl):
+
+    def _trimPath(self, url: QUrl):
         path = url.path()
         match = re.match(r'^/([A-Za-z]):', path)
         if match:
             drive_letter = match.group(1)
             path = drive_letter + ":" + path[3:]
         return Path(path).resolve()
-        
-    
+
     @Slot(str)
     def save(self, url: QUrl = None):
         path = self._trimPath(QUrl(url))
@@ -103,7 +102,6 @@ class SessionData(QObject):
         for key, value in kwargs.items():
             setattr(self._algoGroup[index][algoIndex], key, value)
         self.setFrame(index, self.applyAlgorithms(index))
-        
 
     def setFrame(self, index, newImage, emit=True):
         if index >= len(self.frame):
@@ -128,37 +126,21 @@ class SessionData(QObject):
                 if currentFrame is None:
                     raise ValueError(f"Faild to apply alogorithm {algo.title}")
         return currentFrame
-    
-    @Property(str)
-    def fileName(self):
-        return self._fileName
 
-    @Property(list, constant=True)
-    def algoGroup(self):
-        return self._algoGroup
-
-    @Property(TaskType, constant=True)
-    def type(self):
-        return self._type
-
-    @Property(str, constant=True)
-    def name(self):
-        return self._name
-
-    @Property(bool, notify=isClonedViewChanged)
-    def isClonedView(self):
-        return self._isClonedView
+    fileName = Property(str, lambda self: self._filePath.name)
+    algoGroup = Property(list, lambda self: self._algoGroup, constant=True)
+    type = Property(TaskType, lambda self: self._type, constant=True)
+    name = Property(str, lambda self: self._name, constant=True)
+    isClonedView = Property(bool,
+                            lambda self: self._isClonedView,
+                            notify=isClonedViewChanged)
+    sessionPath = Property(str, lambda self: self._sessionPath, constant=True)
 
     @isClonedView.setter
     def isClonedView(self, value):
         if self._isClonedView != value:
             self._isClonedView = value
             self.isClonedViewChanged.emit()
-    
-    @Property(str, constant=True)
-    def sessionPath(self):
-        return self._sessionPath
-
 
 
 @QmlElement
@@ -166,11 +148,19 @@ class Bridge(QObject):
 
     @Slot(QUrl, "QVariant", result=SessionData)
     def parseFile(self, url, provider: ImageProvider):
-        data = SessionData(url, self)
-        provider.type = data.type
-        data.frameChanged.connect(
-            lambda index: provider.setFrame(index, data.frame[index], False))
-        provider.frameChanged.connect(
-            lambda index: data.setFrame(index, provider.frame[index], False))
-        data.frameChanged.emit(0)
-        return data
+        self._errorString = None
+        try:
+            data = SessionData(url, self)
+            provider.type = data.type
+            data.frameChanged.connect(lambda index: provider.setFrame(
+                index, data.frame[index], False))
+            provider.frameChanged.connect(lambda index: data.setFrame(
+                index, provider.frame[index], False))
+            data.frameChanged.emit(0)
+            return data
+        except:
+            return None
+
+    @Property(str, constant=True)
+    def errroString(self):
+        return self._errorString

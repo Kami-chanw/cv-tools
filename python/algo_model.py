@@ -1,63 +1,37 @@
-﻿from typing import Dict, Optional, Union
-from PySide6.QtCore import QAbstractItemModel, QObject, Property, Signal, QModelIndex, QEnum, Qt, QByteArray, Slot
+﻿# To be used on the @QmlElement decorator
+# (QML_IMPORT_MINOR_VERSION is optional)
+QML_IMPORT_NAME = "CvTools"
+QML_IMPORT_MAJOR_VERSION = 1
+
+from typing import Dict, Optional, Union
+from PySide6.QtCore import QAbstractItemModel, QObject, Property, Signal, QModelIndex, QEnum, Qt, QByteArray, Slot, QAbstractListModel
+from PySide6.QtQml import QmlElement
 from enum import Enum
 import warnings
-
-@QEnum
-class AlgorithmRole(Enum):
-    ItemTypeRole, InformativeRole, EnabledRole = range(Qt.UserRole + 1,
-                                                       Qt.UserRole + 4)
-
-    @staticmethod
-    def defaultRoleNames():
-        return {
-            AlgorithmRole.ItemTypeRole.value: "item",
-            AlgorithmRole.InformativeRole.value: "informativeText",
-            AlgorithmRole.EnabledRole.value: "enabled"
-        }
-
-    @classmethod
-    def lastRoleValue(cls):
-        return AlgorithmRole.EnabledRole.value
 
 
 class AbstractAlgorithm(QObject):
 
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
-        self._data = {}
-        self._prerequisite = []
+        self._title = None
+        self._informativeTitle = None
 
-    @Property(str)
-    def title(self):
-        return self._data[Qt.DisplayRole]
+    title = Property(str, lambda self: self._title)
 
     @title.setter
-    def title(self, title: str):
-        self._data[Qt.DisplayRole] = title
+    def title(self, value: str):
+        self._title = value
 
-    @Property(str)
-    def informativeText(self):
-        return self._data[AlgorithmRole.InformativeRole.value]
-    
+    informativeText = Property(str, lambda self: self._informativeTitle)
+
     @informativeText.setter
-    def informativeText(self, text :str):
-        self._data[AlgorithmRole.InformativeRole.value] = text
+    def informativeText(self, text: str):
+        self._informativeTitle = text
 
-    @Property(list, constant=True) 
-    def prerequisite(self):
-        return self._prerequisite
-
-    def data(self, role: int):
-        if role in self._data:
-            return self._data[role]
-        return None
-
-    def setData(self, role, value):
-        if role in self._data and self._data[role] == value:
-            return False
-        self._data[role] = value
-        return True
+    @Slot(list, result=False)
+    def checkPrerequisition(self, algoList: list):
+        return False
 
 
 class AlgorithmGroup(AbstractAlgorithm):
@@ -66,36 +40,32 @@ class AlgorithmGroup(AbstractAlgorithm):
         super().__init__(parent)
         self._algorithms = []
 
-    @Property(list, constant=True)
-    def algorithms(self):
-        return self._algorithms
+    algorithms = Property(list, lambda self: self._algorithms, constant=True)
 
 
 class Algorithm(AbstractAlgorithm):
-    enabledChanged = Signal()
-
-    @QEnum
-    class WidgetType(Enum):
-        Text, ComboBox = range(2)
 
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
-        self._widgets = {}
+        self._widgets = []
+        self._enabled = True
 
     def apply(self, image):
         return None
 
-    def addWidget(self, widgetType: WidgetType, callback=None, **kwargs):
-        pass
+    widgets = Property(list, lambda self: self._widgets)
+    enabled = Property(bool, lambda self: self._enabled)
 
 
-class AlgorithmModel(QAbstractItemModel):
+class AlgorithmTreeModel(QAbstractItemModel):
+    """
+    This model is used for global display. Its instance named `algorithmTreeModel` will be registered into qml engine when App start.
+    Then it will be parsed and add to command pane or edit menu.
+    """
 
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
         self._rootItem = AlgorithmGroup()
-        self._roleNames = super().roleNames()
-        self.addRoleNames(AlgorithmRole.defaultRoleNames())
 
     def columnCount(self, parent: QModelIndex = None) -> int:
         return 1
@@ -106,36 +76,24 @@ class AlgorithmModel(QAbstractItemModel):
             return 0
         return len(parent_item.algorithms)
 
-    def roleNames(self):
-        return self._roleNames
-
-    def addRoleNames(self, roleNameDict: Dict[int, QByteArray]):
-        for role, name in roleNameDict.items():
-            if not type(role) is int:
-                raise TypeError("The type of key in param 0 should be int")
-            if role in self._roleNames:
-                raise ValueError(
-                    f"Duplicate role: previous name {self._roleNames[role]} and current is {name}"
-                )
-            self._roleNames[role] = name
-
     def data(self, index: QModelIndex, role: int = None):
         if not index.isValid():
             return None
-        if role == AlgorithmRole.ItemTypeRole.value:
+        if role == Qt.UserRole:
             return index.internalPointer()
-        return index.internalPointer().data(role)
+        if role == Qt.DisplayRole:
+            return index.internalPointer().title
+        return None
 
     def setData(self, index: QModelIndex, value, role: int) -> bool:
-        if not index.isValid() or not role in self._roleNames:
+        if not index.isValid():
             return False
         item: AbstractAlgorithm = index.internalPointer()
-        if role == AlgorithmRole.ItemTypeRole.value:
+        result = False
+        if role == Qt.UserRole:
             parent_item = item.parent(
             )  # parent_item here must be AlgorithmGroup
-            if parent_item.algorithms[index.row()] == value:
-                result = False
-            else:
+            if parent_item.algorithms[index.row()] != value:
                 if not type(parent_item.algorithms[
                         index.row()]) is AbstractAlgorithm:
                     warnings.warn(
@@ -144,8 +102,10 @@ class AlgorithmModel(QAbstractItemModel):
                 parent_item.algorithms[index.row()] = value
                 value.setParent(parent_item)
                 result = True
-        else:
-            result = item.setData(value, role)
+        elif role == Qt.DisplayRole:
+            if item.title != value:
+                item.title = value
+                result = True
 
         if result:
             self.dataChanged.emit(index, index, [role])
@@ -214,3 +174,98 @@ class AlgorithmModel(QAbstractItemModel):
                 return item
 
         return self._rootItem
+
+
+@QmlElement
+class AlgorithmListModel(QAbstractListModel):
+    """
+    This model is used to store current algorithms, which means it will be changed in qml frontend and listed in tool box.
+    For Qml ListModel compatibility, it also implemented append(),
+    """
+
+    def __init__(self, parent: QObject = None) -> None:
+        super().__init__(parent)
+        self._algorithms = []
+
+    def rowCount(self, parent: QModelIndex = None) -> int:
+        return len(self._algorithms)
+
+    def columnCount(self, parent: QModelIndex = None) -> int:
+        return 1
+
+    def data(self, index: QModelIndex, role: int = None):
+        if not index.isValid():
+            return None
+        if role == Qt.UserRole:
+            return index.internalPointer()
+        if role == Qt.DisplayRole:
+            return index.internalPointer().title
+        return None
+
+    algorithms = Property(list, lambda self: self._algorithms, constant=True)
+
+    def setData(self, index: QModelIndex, value, role: int) -> bool:
+        if not index.isValid() or index.parent().isValid():
+            return False
+        if role == Qt.UserRole:
+            if self._algorithms[index.row()] == value:
+                return False
+            else:
+                if not type(
+                        self._algorithms[index.row()]) is AbstractAlgorithm:
+                    warnings.warn(
+                        f"Index at {index} already has an item, setData() will override current item.",
+                        category=UserWarning)
+                self._algorithms[index.row()] = value
+                value.setParent(None)
+        elif role == Qt.DisplayRole:
+            self._algorithms[index.row()].title = value
+        else:
+            return False
+
+        self.dataChanged.emit(index, index, [role])
+
+        return True
+
+    def index(self, row: int, column: int,
+              parent: QModelIndex = QModelIndex()) -> QModelIndex:
+        if parent.isValid():
+            return QModelIndex()
+
+        if 0 <= row < len(self._algorithms):
+            return self.createIndex(row, column, QModelIndex())
+        return QModelIndex()
+
+    def insertRows(self,
+                   row: int,
+                   count: int,
+                   parent: QModelIndex = QModelIndex()) -> bool:
+        if parent.isValid():
+            return False
+
+        if 0 <= row <= len(self._algorithms) and count > 0:
+            self.beginInsertRows(parent, row, row + count - 1)
+            for _ in range(count):
+                self._algorithms.insert(row, AbstractAlgorithm())
+            self.endInsertRows()
+            return True
+        return False
+
+    def removeRows(self,
+                   row: int,
+                   count: int,
+                   parent: QModelIndex = QModelIndex()) -> bool:
+        if parent.isValid():
+            return False
+
+        if 0 <= row and row + count <= len(self._algorithms):
+            self.beginRemoveRows(parent, row, row + count - 1)
+            for _ in range(count):
+                self._algorithms.pop(row)
+            self.endRemoveRows()
+            return True
+        return False
+    
+    # Qml ListModel compatibility
+
+    # def 

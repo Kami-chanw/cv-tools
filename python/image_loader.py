@@ -41,23 +41,17 @@ class ImageProvider(QQuickImageProvider):
             return
         if emit:
             self.frameChanged.emit(index)
-        self.setSource(
-            f"image://{self.providerId()}/{self.type.name}/{index}/{self._counter}"
-        )
+        self.source= f"image://{self.providerId()}/{self.type.name}/{index}/{self._counter}"
+        
 
-    @Property(list, constant=True)
-    def frame(self):
-        return self._frame
-
-    def setSource(self, newSource):
+    frame = Property(list, lambda self: self._frame, constant=True)
+    source = Property(str, lambda self: self._source, notify=sourceChanged )
+    @source.setter
+    def source(self, newSource):
         if self._source != newSource:
             self._source = newSource
             self._counter += 1
             self.sourceChanged.emit()
-
-    @Property(str, fset=setSource, notify=sourceChanged)
-    def source(self):
-        return self._source
 
     def providerId(self):
         return "cvtimageprovider"

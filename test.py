@@ -1,21 +1,6 @@
-﻿from typing import Optional
-from PySide6.QtCore import Property, QObject, QEnum, Qt
-from enum import Enum
-
-class A(QObject):
-
-    def __init__(self, parent: QObject | None = None) -> None:
-        super().__init__(parent)
-        self._pp = ""
-        self.pp.notify.emit()
-
-    @Property(str)
-    def pp(self):
-        return self._pp
-    
-    @pp.setter
-    def pp(self, s):
-        self._pp = s
-
-a = A()
-
+﻿from algorithm import cvt_color
+from python.algo_model import *
+from python.bridge import *
+from pathlib import Path
+sessionData = SessionData(Path(r"C:\Users\ASUS\Pictures\Saved Pictures\418f33056a268843700fe3d605d5a2e84ff0f3ed.jpg@1320w_1036h.jpg"))
+sessionData.algoModel[0].append(cvt_color.CvtColor())

@@ -5,8 +5,10 @@ QML_IMPORT_MAJOR_VERSION = 1
 
 from typing import Dict, Optional, Union
 from PySide6.QtCore import QAbstractItemModel, QObject, Property, Signal, QModelIndex, QEnum, Qt, QByteArray, Slot, QAbstractListModel
+from PySide6.QtGui import QStandardItemModel, QStandardItem
 from PySide6.QtQml import QmlElement
 from enum import Enum
+from .algo_widgets import *
 import warnings
 
 
@@ -17,17 +19,21 @@ class AbstractAlgorithm(QObject):
         self._title = None
         self._informativeTitle = None
 
-    title = Property(str, lambda self: self._title)
-
+    titleChanged = Signal()
+    title = Property(str, lambda self: self._title, notify=titleChanged)
     @title.setter
-    def title(self, value: str):
-        self._title = value
+    def title(self, title: str):
+        if self._title != title:
+            self._title = title
+            self.titleChanged.emit()
 
-    informativeText = Property(str, lambda self: self._informativeTitle)
-
+    informativeTextChanged = Signal()
+    informativeText = Property(str, lambda self: self._informativeTitle, notify=informativeTextChanged)
     @informativeText.setter
     def informativeText(self, text: str):
-        self._informativeTitle = text
+        if self._informativeTitle != text:
+            self._informativeTitle = text
+            self.informativeTextChanged.emit()
 
     @Slot(list, result=False)
     def checkPrerequisition(self, algoList: list):
@@ -44,17 +50,38 @@ class AlgorithmGroup(AbstractAlgorithm):
 
 
 class Algorithm(AbstractAlgorithm):
+    currentValueChanged = Signal(QModelIndex)
+    enabledChanged = Signal()
 
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
-        self._widgets = []
+        self._widgets = QStandardItemModel(self)
         self._enabled = True
 
     def apply(self, image):
         return None
 
-    widgets = Property(list, lambda self: self._widgets)
-    enabled = Property(bool, lambda self: self._enabled)
+    def addWidget(self, widget: AbstractWidget):
+
+        def propagate(name):
+            if name == "currentValue":
+                self.currentValueChanged.emit(
+                    self._widgets.itemFromIndex(widget))
+
+        item = QStandardItem()
+        item.setData(widget, Qt.UserRole)
+        item.setData(widget.title, Qt.DisplayRole)
+        widget.dataChanged.connect(propagate)
+        self._widgets.appendRow(item)
+
+    widgets = Property(QStandardItemModel, lambda self: self._widgets, constant=True)
+    enabled = Property(bool, lambda self: self._enabled, notify=enabledChanged)
+
+    @enabled.setter
+    def enabled(self, enabled):
+        if self._enabled != enabled:
+            self._enabled=enabled
+            self.enabledChanged.emit()
 
 
 class AlgorithmTreeModel(QAbstractItemModel):
@@ -183,9 +210,13 @@ class AlgorithmListModel(QAbstractListModel):
     For Qml ListModel compatibility, it also implemented append(),
     """
 
+    updateRequired = Signal()
+
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
         self._algorithms = []
+        self.rowsMoved.connect(self.updateRequired)
+        self.rowsRemoved.connect(self.updateRequired)
 
     def rowCount(self, parent: QModelIndex = None) -> int:
         return len(self._algorithms)
@@ -216,8 +247,14 @@ class AlgorithmListModel(QAbstractListModel):
                     warnings.warn(
                         f"Index at {index} already has an item, setData() will override current item.",
                         category=UserWarning)
+                if not issubclass(type(value), Algorithm):
+                    raise ValueError("Value must subclass Algorithm")
+
+                value.currentValueChanged.connect(self.updateRequired)
+                value.enabledChanged.connect(self.updateRequired)
                 self._algorithms[index.row()] = value
                 value.setParent(None)
+                self.updateRequired.emit()
         elif role == Qt.DisplayRole:
             self._algorithms[index.row()].title = value
         else:
@@ -265,7 +302,31 @@ class AlgorithmListModel(QAbstractListModel):
             self.endRemoveRows()
             return True
         return False
-    
+
     # Qml ListModel compatibility
 
-    # def 
+    count = Property(int, lambda self: len(self._algorithms))
+
+    @Slot(int, result=Algorithm)
+    def get(self, index):
+        return self._algorithms[index]
+
+    @Slot(Algorithm)
+    def append(self, algo: Algorithm):
+        self.insertRow(self.count)
+        self.setData(self.index(self.count - 1, 0), algo, Qt.UserRole)
+
+    @Slot(int, int, int)
+    def move(self, frm, to, count):
+        if frm < 0 or to < 0 or count < 1 or frm + count > len(
+                self._algorithms) or to + count > len(self._algorithms):
+            raise IndexError("index out of range")
+
+        if self.beginMoveRows(QModelIndex(), frm, frm + count - 1,
+                              QModelIndex(), to + (to > frm)) == False:
+            raise ValueError(
+                "beginMoveRows() failed, check params and read qt document.")
+
+        for _ in range(count):
+            self._algorithms.insert(self._algorithms.pop(frm))
+        self.endMoveRows()

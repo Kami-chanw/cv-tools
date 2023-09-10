@@ -21,8 +21,6 @@ ShadowWindow {
     minimumHeight: 400
     objectName: "MainForm"
 
-    signal algoParamChanged(int index, int algoIndex, var params)
-
     readonly property string appName: "CV Tools"
 
     Image {
@@ -30,18 +28,21 @@ ShadowWindow {
         source: "qrc:/assets/logo.svg"
         width: 18
         height: 18
-        anchors.verticalCenter: parent.verticalCenter
         anchors.leftMargin: 7
         anchors.left: parent.left
+        anchors.verticalCenter: parent.verticalCenter
     }
 
     Text {
         id: titleText
         parent: root.title
+        width: 300
+        anchors.centerIn: parent
         text: root.appName
         color: "white"
-        anchors.centerIn: parent
         font.pointSize: 9
+        horizontalAlignment: Text.AlignHCenter
+        elide: Text.ElideRight
     }
 
     title {
@@ -52,12 +53,11 @@ ShadowWindow {
         }
         bottomBorder.color: "#2A2A2A"
     }
-    background: Rectangle {
+    background: KmcRectangle {
         id: backgroundRect
         radius: 10
         color: "#1F1F1F"
         border.color: "#404040"
-        border.width: 1
         Binding {
             when: root.visibility === Window.Maximized
             backgroundRect.border.width: 0
@@ -85,7 +85,6 @@ ShadowWindow {
     onSessionDataChanged: {
         if (sessionData) {
             testbedPageLoader.item.sessionData = root.sessionData
-            algoParamChanged.connect(root.sessionData.setAlgoParams)
             titleText.text = root.sessionData.fileName + " - " + root.sessionData.name + " - " + root.appName
             stackLayout.switchTo(MainForm.PageType.Testbed)
         } else {
@@ -104,11 +103,8 @@ ShadowWindow {
             required property var index
             onTriggered: {
                 var algorithm = algorithmTreeModel.data(index, Qt.UserRole)
-
-                algoModel.append({
-                                     "title": algorithm.title,
-                                     "algo": algorithm
-                                 })
+                sessionData.algoModel[Number(sessionData.isClonedView
+                                             && !algoList.activeFocus)].append(algorithm)
             }
         }
     }
@@ -435,6 +431,7 @@ ShadowWindow {
             }
             color: root.title.color
             rightBorder.color: "#2A2A2A"
+            leftBottomRadius: backgroundRect.radius
             MyAppBar {
                 id: topAppBar
                 currentIndex: 0
@@ -532,9 +529,7 @@ ShadowWindow {
 
                     MyToolBox {
                         id: algoList
-                        model: ListModel {
-                            id: algoModel
-                        }
+                        model: sessionData?.algoModel[0]
                     }
                 }
             }

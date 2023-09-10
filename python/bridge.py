@@ -3,19 +3,24 @@
 QML_IMPORT_NAME = "CvTools"
 QML_IMPORT_MAJOR_VERSION = 1
 
+from typing import Optional
 from PySide6.QtCore import QObject, Slot, QEnum, QUrl, Signal, Property
 from PySide6.QtGui import QImageReader
 from PySide6.QtQml import QmlElement
 from enum import Enum
-from pathlib import Path
+from pathlib import Path, WindowsPath
 from .image_loader import *
 from .algo_model import *
+from .algo_widgets import AbstractWidget
 from functools import partial
 import re
 import cv2
 import numpy as np
 import pickle
 
+@QmlElement
+class Enums(QObject):
+    WidgetType = QEnum(AbstractWidget.WidgetType)
 
 @QmlElement
 class SessionData(QObject):
@@ -24,13 +29,15 @@ class SessionData(QObject):
     frameChanged = Signal(int)
     isClonedViewChanged = Signal()
 
-    def __init__(self, url: QUrl, parent=None) -> None:
+    def __init__(self, path: WindowsPath, parent=None) -> None:
         super().__init__(parent)
 
         self._isClonedView = False
-        self._algoGroup = [[], []]
+        self._algoModel = [AlgorithmListModel(self), AlgorithmListModel(self)]
+        self._algoModel[0].updateRequired.connect(lambda :self.applyAlgorithms(0))
+        self._algoModel[1].updateRequired.connect(lambda :self.applyAlgorithms(1))
+
         self._sessionPath = None
-        path = self._trimPath(url)
 
         if path.suffix in [".png", ".jpg", ".jpeg", ".jpe"]:
             self._type = TaskType.Image
@@ -46,23 +53,43 @@ class SessionData(QObject):
             self._type = TaskType.Video
             self._name = "untitled"
         elif path.suffix == ".cvsession":
-            with open(path, 'wb') as f:
+            with open(path, 'rb') as f:
                 data = pickle.load(f)
-            for name, value in vars(self).items():
-                value = data[name]
+                # only self._isClonedView, self._algoGroup, self._sessionPath can be detected
+
+                for name, value in vars(self).items():
+                    if name.startswith('_'):
+                        value = data[name]
+
+                try:
+                    self._type = data['_type']
+                    self._name = data['_name']
+                    self._filePath = data['_filePath']
+                except Exception as e:
+                    print(e)
+
                 if not self._filePath.exists():
                     raise FileNotFoundError("Original file not found.")
+                else:
+                    reader = QImageReader(str(self._filePath))
+                    self._origin_image = reader.read()
+                    self.frame = [self._origin_image]
         else:
             raise ValueError("unknown file")
 
     def _qt2cv(self, qimage):
-        if qimage.format() == QImage.Format_RGB32:
-            qimage = qimage.convertToFormat(QImage.Format_RGB888)
+        if qimage.format() != QImage.Format.Format_RGB32:
+            qimage = qimage.convertToFormat(QImage.Format.Format_RGB32)
 
-        img = np.frombuffer(qimage.bits(),
-                            dtype=np.uint8).reshape(qimage.height(),
-                                                    qimage.width(), 4)
-        return cv2.cvtColor(img, cv2.COLOR_RGBA2BGR)
+        width = qimage.width()
+        height = qimage.height()
+        ptr = qimage.constBits()
+        ptr.setsize(qimage.byteCount())
+        img_data = np.array(ptr).reshape(height, width, 4)  # 4 channels: RGBA
+
+        # 转换为BGR格式
+        cv_image = cv2.cvtColor(img_data, cv2.COLOR_RGBA2BGR)
+        return cv_image
 
     def _cv2qt(self, cv_img):
         if len(cv_img.shape) == 2:  # 灰度图像
@@ -79,30 +106,6 @@ class SessionData(QObject):
 
         return QImage(cv_img.data, width, height, bytes_per_line, image_format)
 
-    def _trimPath(self, url: QUrl):
-        path = url.path()
-        match = re.match(r'^/([A-Za-z]):', path)
-        if match:
-            drive_letter = match.group(1)
-            path = drive_letter + ":" + path[3:]
-        return Path(path).resolve()
-
-    @Slot(str)
-    def save(self, url: QUrl = None):
-        path = self._trimPath(QUrl(url))
-        data = vars(self)
-        if not path.suffix == '.cvsession':
-            path += '.cvsession'
-        with open(path, 'wb') as f:
-            pickle.dump(data, f)
-        self._sessionPath = url
-
-    @Slot(int, int, dict)
-    def setAlgoParams(self, index, algoIndex, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self._algoGroup[index][algoIndex], key, value)
-        self.setFrame(index, self.applyAlgorithms(index))
-
     def setFrame(self, index, newImage, emit=True):
         if index >= len(self.frame):
             self.frame.append(newImage)
@@ -112,23 +115,20 @@ class SessionData(QObject):
             return
         if emit:
             self.frameChanged.emit(index)
-
-    @Slot(int, Algorithm)
-    def appendAlgorithm(self, index: int, algo: Algorithm):
-        self._algoGroup[index].append(algo)
-        self.setFrame(index, self.applyAlgorithms(index))
-
+    
     def applyAlgorithms(self, index):
+        if len(self._algoModel[index].algorithms) == 0:
+            return
         currentFrame = self._qt2cv(self._origin_image)
-        for algo in self._algoGroup[index]:
+        for algo in self._algoModel[index].algorithms:
             if algo.enabled:
                 currentFrame = algo.apply(algo)
                 if currentFrame is None:
                     raise ValueError(f"Faild to apply alogorithm {algo.title}")
-        return currentFrame
+        self.setFrame(index, self._cv2qt(currentFrame))
 
     fileName = Property(str, lambda self: self._filePath.name)
-    algoGroup = Property(list, lambda self: self._algoGroup, constant=True)
+    algoModel = Property(list, lambda self: self._algoModel, constant=True)
     type = Property(TaskType, lambda self: self._type, constant=True)
     name = Property(str, lambda self: self._name, constant=True)
     isClonedView = Property(bool,
@@ -146,11 +146,14 @@ class SessionData(QObject):
 @QmlElement
 class Bridge(QObject):
 
+    def __init__(self, parent: QObject | None = None) -> None:
+        super().__init__(parent)
+        self._errorString = None
+
     @Slot(QUrl, "QVariant", result=SessionData)
     def parseFile(self, url, provider: ImageProvider):
-        self._errorString = None
         try:
-            data = SessionData(url, self)
+            data = SessionData(self._trimPath(url), self)
             provider.type = data.type
             data.frameChanged.connect(lambda index: provider.setFrame(
                 index, data.frame[index], False))
@@ -160,6 +163,54 @@ class Bridge(QObject):
             return data
         except:
             return None
+    
+    def _trimPath(self, url: QUrl):
+        path = url.path()
+        match = re.match(r'^/([A-Za-z]):', path)
+        if match:
+            drive_letter = match.group(1)
+            path = drive_letter + ":" + path[3:]
+        return Path(path).resolve()
+
+    @Slot(str, SessionData, int)
+    def export(self, path, data, quality):
+        if -1 <= quality <= 100:
+            pass
+        else:
+            raise Exception('quality out of range, it should be between -1 and 100')
+        type = 'JPG'
+        if path.endswith('.jpg'):
+            type = 'JPG'
+        elif path.endswith('.png'):
+            type = 'PNG'
+        elif path.endswith('.jpeg'):
+            type = 'JPEG'
+        data.frame[0].save(path, type, quality)
+
+    @Slot(SessionData, str, result=bool)
+    def save(self, data, url: QUrl = None):
+        path = data._trimPath(QUrl(url))
+        if not path.suffix == '.cvsession':
+            path += '.cvsession'
+        try:
+            with open(path, 'wb') as f:
+                data = dict()
+                for name, value in vars(data).items():
+                    if name.startswith('_'):
+                        print(name)
+                        if name == '_origin_image':
+                            pass
+                        else:
+                            data[name] = value
+                    else:
+                        pass
+                print(data)
+                pickle.dump(data, f)
+            data._sessionPath = url
+            return True
+        except FileNotFoundError as e:
+            print(e)
+            return False
 
     @Property(str, constant=True)
     def errroString(self):

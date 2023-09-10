@@ -2,7 +2,7 @@
 import sys
 from pathlib import Path
 
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QGuiApplication, QIcon
 from PySide6.QtQml import QQmlApplicationEngine
 
 KMCUI_PATH = Path(__file__).resolve().parent / "3rdparty/KmcUI"
@@ -19,6 +19,7 @@ if __name__ == "__main__":
     app = QGuiApplication(sys.argv)
     QGuiApplication.setOrganizationName("seu")
     QGuiApplication.setOrganizationDomain("seu.cvtools")
+    app.setWindowIcon(QIcon("assets/logo.svg"))
     imageProvider = ImageProvider()
     engine = QQmlApplicationEngine()
     engine.addImageProvider(imageProvider.providerId(), imageProvider)

@@ -4,17 +4,10 @@ import QtQuick.Controls.impl
 import QtQuick.Controls.Fusion
 import QtQuick.Controls.Fusion.impl
 
-T.ScrollBar {
+ScrollBar {
     id: control
-
-    implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
-                            implicitContentWidth + leftPadding + rightPadding)
-    implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
-                             implicitContentHeight + topPadding + bottomPadding)
-
     padding: 2
-    visible: control.policy !== T.ScrollBar.AlwaysOff
-    minimumSize: orientation === Qt.Horizontal ? height / width : width / height
+    visible: control.policy !== ScrollBar.AlwaysOff
 
     contentItem: Rectangle {
         implicitWidth: 14
@@ -26,23 +19,23 @@ T.ScrollBar {
         states: [
             State {
                 name: "active"
-                when: control.policy === T.ScrollBar.AlwaysOn || (parent.hovered && !control.hovered
-                                                                  && control.size < 1.0)
+                when: control.policy === ScrollBar.AlwaysOn || (parent.hovered && !control.hovered
+                                                                && control.size < 1.0)
                 PropertyChanges {
                     control.contentItem.opacity: 0.08
                 }
             },
             State {
                 name: "hover"
-                when: control.hovered && !control.pressed
-                      && (control.policy === T.ScrollBar.AlwaysOn || control.size < 1.0)
+                when: control.hovered && !control.pressed && (control.policy === ScrollBar.AlwaysOn
+                                                              || control.size < 1.0)
                 PropertyChanges {
                     control.contentItem.opacity: 0.1
                 }
             },
             State {
                 name: "press"
-                when: control.pressed && (control.policy === T.ScrollBar.AlwaysOn
+                when: control.pressed && (control.policy === ScrollBar.AlwaysOn
                                           || control.size < 1.0)
                 PropertyChanges {
                     control.contentItem.opacity: 0.22

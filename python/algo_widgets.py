@@ -1,6 +1,6 @@
 ﻿from typing import Optional
-from PySide6.QtCore import QObject, Property, Signal, QEnum
-from PySide6.QtGui import QValidator
+from PySide6.QtCore import QObject, Property, Signal, QEnum, Qt, Slot
+from PySide6.QtGui import QValidator, QStandardItem, QStandardItemModel
 from enum import Enum
 
 
@@ -12,13 +12,17 @@ class AbstractWidget(QObject):
 
     dataChanged = Signal(str)
 
-    def __init__(self, parent: QObject | None = None) -> None:
+    def __init__(self,
+                 title,
+                 informativeText=None,
+                 type: WidgetType = None,
+                 parent: QObject | None = None) -> None:
         super().__init__(parent)
-        self._title = None
-        self._informativeText = None
+        self._title = title
+        self._informativeText = informativeText
         self._currentValue = None
         self._defaultValue = None
-        self._type = None
+        self._type = type
 
     title = Property(str, lambda self: self._title, notify=dataChanged)
 
@@ -38,9 +42,9 @@ class AbstractWidget(QObject):
             self._informativeText = informativeText
             self.dataChanged.emit("informativeText")
 
-    type = Property(WidgetType, lambda self: self._type, constant=True)
+    type = Property(int, lambda self: self._type.value, constant=True)
 
-    @Property("QVariant")
+    @Property("QVariant", notify=dataChanged)
     def currentValue(self):
         if self._currentValue == None:
             self._currentValue = self._defaultValue
@@ -52,7 +56,9 @@ class AbstractWidget(QObject):
             self._currentValue = currentValue
             self.dataChanged.emit("currentValue")
 
-    defaultValue = Property("QVariant", lambda self: self._defaultValue)
+    defaultValue = Property("QVariant",
+                            lambda self: self._defaultValue,
+                            notify=dataChanged)
 
     @defaultValue.setter
     def defaultValue(self, defaultValue):
@@ -63,108 +69,114 @@ class AbstractWidget(QObject):
 
 class ComboBox(AbstractWidget):
 
-    class Pair(QObject):
+    def __init__(self,
+                 title,
+                 informativeText=None,
+                 parent: QObject | None = None) -> None:
+        super().__init__(title, informativeText,
+                         AbstractWidget.WidgetType.ComboBox, parent)
+        self._labelModel = QStandardItemModel(self)
 
-        def __init__(self,
-                     label,
-                     tip=None,
-                     parent: QObject | None = None) -> None:
-            super().__init__(parent)
-            self._label = label
-            self._tip = tip
+    def append(self, label, tip=None):
+        self.insert(self._labelModel.rowCount(), label, tip)
 
-        labelChanged = Signal()
-        label = Property(str, lambda self: self._label)
+    def insert(self, idx, label, tip=None):
+        item = QStandardItem()
+        item.setData(label, Qt.DisplayRole)
+        if tip:
+            item.setData(tip, Qt.ToolTipRole)
+        self._labelModel.insertRow(idx, item)
 
-        @label.setter
-        def label(self, lable):
-            if self._label != lable:
-                self._label = lable
-                self.labelChanged()
+    def remove(self, idx):
+        self._labelModel.removeRow(idx)
 
-        tipChanged = Signal()
-        tip = Property(str, lambda self: self._tip)
+    @Property(int, constant=True)
+    def defaultIndex(self):
+        for index in range(self._labelModel.rowCount()):
+            if self._labelModel.data(self._labelModel.index(index, 0),
+                                     Qt.DisplayRole) == self._defaultValue:
+                return index
+        return -1
 
-        @tip.setter
-        def tip(self, lable):
-            if self._tip != lable:
-                self._tip = lable
-                self.tipChanged()
-
-    def __init__(self, parent: QObject | None = None) -> None:
-        super().__init__(parent)
-        self._labelList = []
-        self._type = AbstractWidget.WidgetType.ComboBox.value
-
-    labelList = Property(list, lambda self: self._labelList)
-
-    @labelList.setter
-    def labelList(self, labelList):
-        if self._labelList != labelList:
-            self._labelList = labelList
-            self.dataChanged.emit("labelList")
+    labelModel = Property(QObject,
+                          lambda self: self._labelModel,
+                          constant=True)
 
 
 class Slider(AbstractWidget):
 
-    def __init__(self, parent: QObject | None = None) -> None:
-        super().__init__(parent)
-        self._range = ()
-        self._step = 0
-        self._tickInterval = 0
-        self._type = AbstractWidget.WidgetType.Slider.value
+    def __init__(self,
+                 title,
+                 informativeText=None,
+                 parent: QObject | None = None) -> None:
+        super().__init__(title, informativeText,
+                         AbstractWidget.WidgetType.Slider, parent)
+        self._minimum = 0.0
+        self._stepSize = 0.0
+        self._maximum = 0.0
 
-    range = Property(tuple, lambda self: self._range)
+    minimum = Property(float, lambda self: self._minimum)
 
-    @range.setter
-    def range(self, range):
-        if self._range != range:
-            self._range = range
-            self.dataChanged.emit("range")
+    @minimum.setter
+    def minimum(self, minimum):
+        if self._minimum != minimum:
+            self._minimum = minimum
+            self.dataChanged.emit("minimum")
 
-    step = Property(float, lambda self: self._step)
+    stepSize = Property(float, lambda self: self._step)
 
-    @step.setter
-    def step(self, step):
-        if self._step != step:
-            self._step = step
+    @stepSize.setter
+    def stepSize(self, step):
+        if self._stepSize != step:
+            self._stepSize = step
             self.dataChanged.emit("step")
 
-    tickIntweval = Property(float, lambda self: self._tickInterval)
+    maximum = Property(float,
+                            lambda self: self._maximum,
+                            notify=AbstractWidget.dataChanged)
 
-    @tickIntweval.setter
-    def tickIntweval(self, tickIntweval):
-        if self._tickInterval != tickIntweval:
-            self._tickInterval = tickIntweval
-            self.dataChanged.emit("tickIntweval")
+    @maximum.setter
+    def maximum(self, maximum):
+        if self._maximum != maximum:
+            self._maximum = maximum
+            self.dataChanged.emit("maximum")
 
 
 class LineEdit(AbstractWidget):
 
-    def __init__(self, parent: QObject | None = None) -> None:
-        super().__init__(parent)
-        self._placeholder = ""
-        self._maxLength = 0
+    def __init__(self,
+                 title,
+                 informativeText=None,
+                 parent: QObject | None = None) -> None:
+        super().__init__(title, informativeText,
+                         AbstractWidget.WidgetType.LineEdit, parent)
+        self._placeholderText = ""
+        self._maximumLength = 0
         self._validator = QValidator()
-        self._type = AbstractWidget.WidgetType.LineEdit.value
 
-    placeholder = Property(str, lambda self: self._placeholder)
+    placeholderText = Property(str,
+                           lambda self: self._placeholderText,
+                           notify=AbstractWidget.dataChanged)
 
-    @placeholder.setter
-    def placeholder(self, placeholder):
-        if self._placeholder != placeholder:
-            self._placeholder = placeholder
-            self.dataChanged.emit("placeholder")
+    @placeholderText.setter
+    def placeholderText(self, placeholderText):
+        if self._placeholderText != placeholderText:
+            self._placeholderText = placeholderText
+            self.dataChanged.emit("placeholderText")
 
-    maxLength = Property(int, lambda self: self._maxLength)
+    maximumLength = Property(int,
+                         lambda self: self._maximumLength,
+                         notify=AbstractWidget.dataChanged)
 
-    @maxLength.setter
-    def maxLength(self, maxLength):
-        if self._maxLength != maxLength:
-            self._maxLength = maxLength
-            self.dataChanged.emit("maxLength")
+    @maximumLength.setter
+    def maximumLength(self, maximumLength):
+        if self._maximumLength != maximumLength:
+            self._maximumLength = maximumLength
+            self.dataChanged.emit("maximumLength")
 
-    validator = Property(QValidator, lambda self: self._validator)
+    validator = Property(QValidator,
+                         lambda self: self._validator,
+                         notify=AbstractWidget.dataChanged)
 
     @validator.setter
     def validator(self, validator):
@@ -175,11 +187,14 @@ class LineEdit(AbstractWidget):
 
 class SpinBox(AbstractWidget):
 
-    def __init__(self, parent: QObject | None = None) -> None:
-        super().__init__(parent)
+    def __init__(self,
+                 title,
+                 informativeText=None,
+                 parent: QObject | None = None) -> None:
+        super().__init__(title, informativeText,
+                         AbstractWidget.WidgetType.SpinBox, parent)
         self._range = ()
         self._precision = 0
-        self._type = AbstractWidget.WidgetType.SpinBox.value
 
     range = Property(tuple, lambda self: self._range)
 
@@ -189,7 +204,9 @@ class SpinBox(AbstractWidget):
             self._range = range
             self.dataChanged.emit("range")
 
-    precision = Property(float, lambda self: self._precision)
+    precision = Property(float,
+                         lambda self: self._precision,
+                         notify=AbstractWidget.dataChanged)
 
     @precision.setter
     def precision(self, precision):
@@ -200,6 +217,9 @@ class SpinBox(AbstractWidget):
 
 class Selector(AbstractWidget):
 
-    def __init__(self, parent: QObject | None = None) -> None:
-        super().__init__(parent)
-        self._type = AbstractWidget.WidgetType.Selector.value
+    def __init__(self,
+                 title,
+                 informativeText=None,
+                 parent: QObject | None = None) -> None:
+        super().__init__(title, informativeText,
+                         AbstractWidget.WidgetType.Selector, parent)

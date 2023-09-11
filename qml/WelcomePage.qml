@@ -6,7 +6,7 @@ Item {
     ListModel {
         id: listModel
         ListElement {
-            text: qsTr("Open a image or video")
+            text: qsTr("Open an image or video")
             sequence: "Ctrl+O"
         }
         ListElement {

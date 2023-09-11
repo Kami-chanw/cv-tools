@@ -1,5 +1,5 @@
-﻿import QtQuick
-import QtQuick.Controls.Basic
+import QtQuick
+import QtQuick.Controls
 
 TextField {
     id: control
@@ -8,14 +8,17 @@ TextField {
     color: "#cccccc"
     placeholderTextColor: "#8E8E8E"
     font.pointSize: 8
-
     selectionColor: "white"
 
     property string fullText
+    required property var widget
+    validator: widget?.validator
+    placeholderText: widget?.placeholder
+    maximumLength: widget?.maximumLength
 
     selectByMouse: true
     background: Rectangle {
-        implicitWidth: 200
+        implicitWidth: 180
         implicitHeight: 28
         color: "#2A2A2A"
         radius: 3

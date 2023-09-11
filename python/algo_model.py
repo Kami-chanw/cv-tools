@@ -21,6 +21,7 @@ class AbstractAlgorithm(QObject):
 
     titleChanged = Signal()
     title = Property(str, lambda self: self._title, notify=titleChanged)
+
     @title.setter
     def title(self, title: str):
         if self._title != title:
@@ -28,7 +29,10 @@ class AbstractAlgorithm(QObject):
             self.titleChanged.emit()
 
     informativeTextChanged = Signal()
-    informativeText = Property(str, lambda self: self._informativeTitle, notify=informativeTextChanged)
+    informativeText = Property(str,
+                               lambda self: self._informativeTitle,
+                               notify=informativeTextChanged)
+
     @informativeText.setter
     def informativeText(self, text: str):
         if self._informativeTitle != text:
@@ -60,13 +64,19 @@ class Algorithm(AbstractAlgorithm):
 
     def apply(self, image):
         return None
+    
+    def indexFromWidget(self, widget :AbstractWidget):
+        for row in range(self._widgets.rowCount()):
+            if self._widgets.item(row, 0).data(Qt.DisplayRole) == widget.title:
+                return row
+        return -1
 
     def addWidget(self, widget: AbstractWidget):
 
         def propagate(name):
             if name == "currentValue":
                 self.currentValueChanged.emit(
-                    self._widgets.itemFromIndex(widget))
+                    self.indexFromWidget(widget))
 
         item = QStandardItem()
         item.setData(widget, Qt.UserRole)
@@ -74,13 +84,13 @@ class Algorithm(AbstractAlgorithm):
         widget.dataChanged.connect(propagate)
         self._widgets.appendRow(item)
 
-    widgets = Property(QStandardItemModel, lambda self: self._widgets, constant=True)
+    widgets = Property(QObject, lambda self: self._widgets, constant=True)
     enabled = Property(bool, lambda self: self._enabled, notify=enabledChanged)
 
     @enabled.setter
     def enabled(self, enabled):
         if self._enabled != enabled:
-            self._enabled=enabled
+            self._enabled = enabled
             self.enabledChanged.emit()
 
 
@@ -225,12 +235,12 @@ class AlgorithmListModel(QAbstractListModel):
         return 1
 
     def data(self, index: QModelIndex, role: int = None):
-        if not index.isValid():
+        if not index.isValid() or index.parent().isValid():
             return None
         if role == Qt.UserRole:
-            return index.internalPointer()
+            return self._algorithms[index.row()]
         if role == Qt.DisplayRole:
-            return index.internalPointer().title
+            return self._algorithms[index.row()].title
         return None
 
     algorithms = Property(list, lambda self: self._algorithms, constant=True)
@@ -242,19 +252,26 @@ class AlgorithmListModel(QAbstractListModel):
             if self._algorithms[index.row()] == value:
                 return False
             else:
-                if not type(
-                        self._algorithms[index.row()]) is AbstractAlgorithm:
-                    warnings.warn(
-                        f"Index at {index} already has an item, setData() will override current item.",
-                        category=UserWarning)
-                if not issubclass(type(value), Algorithm):
-                    raise ValueError("Value must subclass Algorithm")
+                if not value is None:
+                    if not type(self._algorithms[
+                            index.row()]) is AbstractAlgorithm:
+                        warnings.warn(
+                            f"Index at {index} already has an item, setData() will override current item.",
+                            category=UserWarning)
+                    if not issubclass(type(value), Algorithm):
+                        raise ValueError(
+                            f"Value must subclass Algorithm, current type is {type(value)}"
+                        )
 
-                value.currentValueChanged.connect(self.updateRequired)
-                value.enabledChanged.connect(self.updateRequired)
-                self._algorithms[index.row()] = value
-                value.setParent(None)
-                self.updateRequired.emit()
+                    value.currentValueChanged.connect(self.updateRequired)
+                    value.enabledChanged.connect(self.updateRequired)
+                    self._algorithms[index.row()] = value
+                    value.setParent(None)
+                    self.updateRequired.emit()
+                else:
+                    warnings.warn(
+                        f"Value is NoneType, if you want to rmeove item here, set AbstractAlgorithm() instead",
+                        category=UserWarning)
         elif role == Qt.DisplayRole:
             self._algorithms[index.row()].title = value
         else:
@@ -309,12 +326,23 @@ class AlgorithmListModel(QAbstractListModel):
 
     @Slot(int, result=Algorithm)
     def get(self, index):
-        return self._algorithms[index]
+        if 0 <= index < self.count:
+            return self._algorithms[index]
+        return None
+
+    @Slot(int, Algorithm)
+    def set(self, index, algo):
+        self.setData(self.index(index, 0), algo, Qt.UserRole)
 
     @Slot(Algorithm)
     def append(self, algo: Algorithm):
         self.insertRow(self.count)
         self.setData(self.index(self.count - 1, 0), algo, Qt.UserRole)
+        
+
+    @Slot(int, int)
+    def remove(self, index, count):
+        self.removeRows(index, count)
 
     @Slot(int, int, int)
     def move(self, frm, to, count):
@@ -328,5 +356,5 @@ class AlgorithmListModel(QAbstractListModel):
                 "beginMoveRows() failed, check params and read qt document.")
 
         for _ in range(count):
-            self._algorithms.insert(self._algorithms.pop(frm))
+            self._algorithms.insert(to, self._algorithms.pop(frm))
         self.endMoveRows()

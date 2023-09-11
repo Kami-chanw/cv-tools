@@ -17,31 +17,59 @@ ToolBox {
     }
 
     sourceSelector: index => {
-                        console.log(control.model.data(control.model.index(index, 0),
-                                                       Qt.UserRole).widgets)
                         return {
                             "source": Qt.resolvedUrl(".") + "../AlgoListItem.qml",
                             "properties": {
-                                "model": undefined
+                                "model": control.model.get(index).widgets
                             }
                         }
                     }
-
     boxDelegate: ToolBoxDelegate {
+        id: boxDelegate
         implicitHeight: 22
+        rightPadding: 4
         contentItem: Item {
             Text {
                 anchors {
                     left: parent.left
                     verticalCenter: parent.verticalCenter
                 }
-
-                text: "model.title"
-                color: model.enbaled ? "#CCCCCC" : "#181818"
+                font.strikeout: !boxDelegate.model?.enabled
+                width: row.visible ? parent.width - row.width - leftPadding - row.anchors.rightMargin : parent.width
+                text: boxDelegate.model?.title.toUpperCase() ?? ""
+                color: "#CCCCCC"
+                leftPadding: 13
                 verticalAlignment: Text.AlignVCenter
-                leftPadding: indicator.implicitWidth
                 elide: Text.ElideRight
                 font.bold: true
+            }
+            Row {
+                id: row
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 3
+                //                visible: boxDelegate.hovered
+                MyIconButton {
+                    height: boxDelegate.height - 2
+                    width: height
+                    icon.source: "qrc:/assets/icons/apply.svg"
+                    toolTip: "Enable/Disable effect"
+                    checkable: true
+                    checked: true
+                    onClicked: {
+                        boxDelegate.model.enabled = !boxDelegate.model.enabled
+                        checked = !checked
+                    }
+                }
+                MyIconButton {
+                    height: boxDelegate.height - 2
+                    width: height
+                    icon.source: "qrc:/assets/icons/close_tab.svg"
+                    toolTip: "Remove effect"
+                    onClicked: {
+                        control.model.remove(boxDelegate.index, 1)
+                    }
+                }
             }
         }
         background: Item {
@@ -50,7 +78,7 @@ ToolBox {
                 anchors.rightMargin: border.width
                 anchors.leftMargin: border.width
                 color: "#1F1F1F"
-                border.color: highlighted ? "#0078D4" : "transparent"
+                border.color: boxDelegate.highlighted ? "#0078D4" : "transparent"
             }
         }
 
@@ -61,7 +89,7 @@ ToolBox {
             ColorIcon {
                 anchors.centerIn: parent
                 source: "qrc:/assets/icons/arrow.svg"
-                rotation: expanded ? 90 : 0
+                rotation: boxDelegate.expanded ? 90 : 0
                 height: 13
                 width: 13
                 color: "#CCCCCC"

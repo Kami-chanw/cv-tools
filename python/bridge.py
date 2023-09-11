@@ -84,11 +84,8 @@ class SessionData(QObject):
         width = qimage.width()
         height = qimage.height()
         ptr = qimage.constBits()
-        ptr.setsize(qimage.byteCount())
-        img_data = np.array(ptr).reshape(height, width, 4)  # 4 channels: RGBA
-
-        # 转换为BGR格式
-        cv_image = cv2.cvtColor(img_data, cv2.COLOR_RGBA2BGR)
+        img_data = np.array(ptr).reshape(height, width, 4)
+        cv_image = cv2.cvtColor(img_data, cv2.COLOR_BGRA2BGR)
         return cv_image
 
     def _cv2qt(self, cv_img):
@@ -122,7 +119,7 @@ class SessionData(QObject):
         currentFrame = self._qt2cv(self._origin_image)
         for algo in self._algoModel[index].algorithms:
             if algo.enabled:
-                currentFrame = algo.apply(algo)
+                currentFrame = algo.apply(currentFrame)
                 if currentFrame is None:
                     raise ValueError(f"Faild to apply alogorithm {algo.title}")
         self.setFrame(index, self._cv2qt(currentFrame))
@@ -161,7 +158,8 @@ class Bridge(QObject):
                 index, provider.frame[index], False))
             data.frameChanged.emit(0)
             return data
-        except:
+        except Exception as e:
+            self._errorString = str(e)
             return None
     
     def _trimPath(self, url: QUrl):

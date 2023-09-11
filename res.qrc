@@ -6,5 +6,9 @@
         <file>assets/icons/testbed.svg</file>
         <file>assets/icons/settings.svg</file>
         <file>assets/logo.svg</file>
+        <file>assets/icons/close_tab.svg</file>
+        <file>assets/icons/apply.svg</file>
+        <file>assets/icons/question.svg</file>
+        <file>assets/icons/question2.svg</file>
     </qresource>
 </RCC>

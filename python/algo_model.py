@@ -4,7 +4,8 @@ QML_IMPORT_NAME = "CvTools"
 QML_IMPORT_MAJOR_VERSION = 1
 
 from typing import Dict, Optional, Union
-from PySide6.QtCore import QAbstractItemModel, QObject, Property, Signal, QModelIndex, QEnum, Qt, QByteArray, Slot, QAbstractListModel
+from PySide6.QtCore import QAbstractItemModel, QObject, Property, Signal, QModelIndex, QEnum, Qt, QByteArray, Slot, \
+    QAbstractListModel
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 from PySide6.QtQml import QmlElement
 from enum import Enum
@@ -62,10 +63,38 @@ class Algorithm(AbstractAlgorithm):
         self._widgets = QStandardItemModel(self)
         self._enabled = True
 
+    @classmethod
+    def load(cls, data: dict):
+        model = cls()
+        for row_data in data['widgets']:
+            row_items = []
+            for cell_data in row_data:
+                item = QStandardItem(str(cell_data))  # 将数据转换为字符串
+                row_items.append(item)
+            model._widgets.appendRow(row_items)
+        model._enabled = data['enabled']
+        return model
+
+    def toPlainData(self):
+        widgets = []
+        # 遍历模型的行和列
+        for row in range(self._widgets.rowCount()):
+            row_data = []
+            for column in range(self._widgets.columnCount()):
+                item = self._widgets.item(row, column)
+                if item is not None:
+                    # 获取单元格的数据，可能需要根据需要调整数据类型
+                    cell_data = item.text()
+                    row_data.append(cell_data)
+                else:
+                    row_data.append(None)  # 或者使用其他适当的占位符
+            widgets.append(row_data)
+        return {'title': self._title, 'informativeTitle': self._informativeTitle, 'widgets': widgets, 'enabled': self._enabled}
+
     def apply(self, image):
         return None
-    
-    def indexFromWidget(self, widget :AbstractWidget):
+
+    def indexFromWidget(self, widget: AbstractWidget):
         for row in range(self._widgets.rowCount()):
             if self._widgets.item(row, 0).data(Qt.DisplayRole) == widget.title:
                 return row
@@ -132,7 +161,7 @@ class AlgorithmTreeModel(QAbstractItemModel):
             )  # parent_item here must be AlgorithmGroup
             if parent_item.algorithms[index.row()] != value:
                 if not type(parent_item.algorithms[
-                        index.row()]) is AbstractAlgorithm:
+                                index.row()]) is AbstractAlgorithm:
                     warnings.warn(
                         f"Index at {index} already has an item, setData() will override current item.",
                         category=UserWarning)
@@ -213,7 +242,6 @@ class AlgorithmTreeModel(QAbstractItemModel):
         return self._rootItem
 
 
-@QmlElement
 class AlgorithmListModel(QAbstractListModel):
     """
     This model is used to store current algorithms, which means it will be changed in qml frontend and listed in tool box.
@@ -227,6 +255,19 @@ class AlgorithmListModel(QAbstractListModel):
         self._algorithms = []
         self.rowsMoved.connect(self.updateRequired)
         self.rowsRemoved.connect(self.updateRequired)
+
+    @classmethod
+    def load(cls, data: dict):
+        model = cls()
+        for algo in data['algorithms']:
+            model._algorithms.append(algo.load())
+        return model
+
+    def toPlainData(self):
+        algorithms = []
+        for algo in self._algorithms:
+            algorithms.append(algo.toPlainData())
+        return {'algorithms': algorithms}
 
     def rowCount(self, parent: QModelIndex = None) -> int:
         return len(self._algorithms)
@@ -254,7 +295,7 @@ class AlgorithmListModel(QAbstractListModel):
             else:
                 if not value is None:
                     if not type(self._algorithms[
-                            index.row()]) is AbstractAlgorithm:
+                                    index.row()]) is AbstractAlgorithm:
                         warnings.warn(
                             f"Index at {index} already has an item, setData() will override current item.",
                             category=UserWarning)
@@ -338,7 +379,6 @@ class AlgorithmListModel(QAbstractListModel):
     def append(self, algo: Algorithm):
         self.insertRow(self.count)
         self.setData(self.index(self.count - 1, 0), algo, Qt.UserRole)
-        
 
     @Slot(int, int)
     def remove(self, index, count):

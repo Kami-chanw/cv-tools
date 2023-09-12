@@ -18,13 +18,14 @@ import cv2
 import numpy as np
 import pickle
 
+
 @QmlElement
 class Enums(QObject):
     WidgetType = QEnum(AbstractWidget.WidgetType)
 
+
 @QmlElement
 class SessionData(QObject):
-
     nameChanged = Signal()
     frameChanged = Signal(int)
     isClonedViewChanged = Signal()
@@ -34,8 +35,8 @@ class SessionData(QObject):
 
         self._isClonedView = False
         self._algoModel = [AlgorithmListModel(self), AlgorithmListModel(self)]
-        self._algoModel[0].updateRequired.connect(lambda :self.applyAlgorithms(0))
-        self._algoModel[1].updateRequired.connect(lambda :self.applyAlgorithms(1))
+        self._algoModel[0].updateRequired.connect(lambda: self.applyAlgorithms(0))
+        self._algoModel[1].updateRequired.connect(lambda: self.applyAlgorithms(1))
 
         self._sessionPath = None
 
@@ -59,7 +60,10 @@ class SessionData(QObject):
 
                 for name, value in vars(self).items():
                     if name.startswith('_'):
-                        value = data[name]
+                        if name == 'algoModel':
+                            self._algoModel = [AlgorithmListModel.load(value[0]), AlgorithmListModel.load(value[0])]
+                        else:
+                            value = data[name]
 
                 try:
                     self._type = data['_type']
@@ -67,7 +71,7 @@ class SessionData(QObject):
                     self._filePath = data['_filePath']
                 except Exception as e:
                     print(e)
-
+                print('Loading successfully')
                 if not self._filePath.exists():
                     raise FileNotFoundError("Original file not found.")
                 else:
@@ -112,7 +116,7 @@ class SessionData(QObject):
             return
         if emit:
             self.frameChanged.emit(index)
-    
+
     def applyAlgorithms(self, index):
         if len(self._algoModel[index].algorithms) == 0:
             return
@@ -161,7 +165,7 @@ class Bridge(QObject):
         except Exception as e:
             self._errorString = str(e)
             return None
-    
+
     def _trimPath(self, url: QUrl):
         path = url.path()
         match = re.match(r'^/([A-Za-z]):', path)
@@ -187,24 +191,25 @@ class Bridge(QObject):
 
     @Slot(SessionData, str, result=bool)
     def save(self, data, url: QUrl = None):
-        path = data._trimPath(QUrl(url))
+        path = self._trimPath(QUrl(url))
         if not path.suffix == '.cvsession':
             path += '.cvsession'
         try:
             with open(path, 'wb') as f:
-                data = dict()
+                save_data = dict()
                 for name, value in vars(data).items():
                     if name.startswith('_'):
-                        print(name)
                         if name == '_origin_image':
                             pass
+                        elif name == '_algoModel':
+                            save_data[name] = [value[0].toPlainData(), value[1].toPlainData()]
                         else:
-                            data[name] = value
+                            save_data[name] = value
                     else:
                         pass
-                print(data)
-                pickle.dump(data, f)
+                pickle.dump(save_data, f)
             data._sessionPath = url
+            print('Saved successfully')
             return True
         except FileNotFoundError as e:
             print(e)

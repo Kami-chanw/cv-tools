@@ -224,8 +224,8 @@ ShadowWindow {
         nameFilters: ["Cv Tools Session File (*.cvsession)"]
         onAccepted: {
             mainFormSettings.recentSaveFolder = currentFolder
-            root.sessionData.save(currentFile)
-            mainFormSettings.recentSession = root.sessionData.sessionPath
+            bridge.save(root.sessionData, currentFile)
+            mainFormSettings.recentSession = bridge
         }
     }
 

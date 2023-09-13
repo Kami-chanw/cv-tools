@@ -66,30 +66,31 @@ class Algorithm(AbstractAlgorithm):
     @classmethod
     def load(cls, data: dict):
         model = cls()
-        for row_data in data['widgets']:
-            row_items = []
-            for cell_data in row_data:
-                item = QStandardItem(str(cell_data))  # 将数据转换为字符串
-                row_items.append(item)
-            model._widgets.appendRow(row_items)
+        for i in range(len(data['types'])):
+            _type = str(data['types'][i]).split('.')[1]
+            class_to_call = globals()[_type]
+            item = class_to_call.load(data['widgets'][i])
+            # Set the (i,0) item here to the variable item
+            temp = QStandardItem()
+            temp.setData(item, Qt.DisplayRole)
+            model._widgets.setItem(i, 0, temp)
         model._enabled = data['enabled']
         return model
 
     def toPlainData(self):
         widgets = []
-        # 遍历模型的行和列
-        for row in range(self._widgets.rowCount()):
-            row_data = []
-            for column in range(self._widgets.columnCount()):
-                item = self._widgets.item(row, column)
-                if item is not None:
-                    # 获取单元格的数据，可能需要根据需要调整数据类型
-                    cell_data = item.text()
-                    row_data.append(cell_data)
-                else:
-                    row_data.append(None)  # 或者使用其他适当的占位符
-            widgets.append(row_data)
-        return {'title': self._title, 'informativeTitle': self._informativeTitle, 'widgets': widgets, 'enabled': self._enabled}
+        types = []
+        for i in range(self._widgets.rowCount()):
+            item = self._widgets.item(i, 0).data(Qt.UserRole)
+            print(item._type)
+            if item is not None:
+                widgets.append(item.toPlainData())
+                types.append(item._type)
+            else:
+                widgets.append(None)
+                types.append(None)
+        return {'title': self._title, 'informativeTitle': self._informativeTitle, 'widgets': widgets,
+                'enabled': self._enabled, 'types': types}
 
     def apply(self, image):
         return None
@@ -260,13 +261,14 @@ class AlgorithmListModel(QAbstractListModel):
     def load(cls, data: dict):
         model = cls()
         for algo in data['algorithms']:
-            model._algorithms.append(algo.load())
+            model._algorithms.append(Algorithm.load(algo))
         return model
 
     def toPlainData(self):
         algorithms = []
         for algo in self._algorithms:
             algorithms.append(algo.toPlainData())
+        print(algorithms)
         return {'algorithms': algorithms}
 
     def rowCount(self, parent: QModelIndex = None) -> int:

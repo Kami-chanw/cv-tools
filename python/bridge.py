@@ -60,8 +60,9 @@ class SessionData(QObject):
 
                 for name, value in vars(self).items():
                     if name.startswith('_'):
-                        if name == 'algoModel':
-                            self._algoModel = [AlgorithmListModel.load(value[0]), AlgorithmListModel.load(value[0])]
+                        if name == '_algoModel':
+                            self._algoModel = [AlgorithmListModel.load(data['_algoModel'][0]),
+                                               AlgorithmListModel.load(data['_algoModel'][1])]
                         else:
                             value = data[name]
 

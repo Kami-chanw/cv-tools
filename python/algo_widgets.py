@@ -5,7 +5,6 @@ from enum import Enum
 
 
 class AbstractWidget(QObject):
-
     @QEnum
     class WidgetType(Enum):
         ComboBox, LineEdit, SpinBox, Slider, Selector = range(5)
@@ -23,6 +22,25 @@ class AbstractWidget(QObject):
         self._currentValue = None
         self._defaultValue = None
         self._type = type
+
+    @classmethod
+    def load(cls, data):
+        pass
+        '''
+        widget = cls(data['title'], data['informativeText'], data['type'])
+        widget._currentValue = data['currentValue']
+        widget._defaultValue = data['defaultValue']
+        return widget
+        '''
+
+    def toPlainData(self):
+        data = dict()
+        data['title'] = self._title
+        data['informativeText'] = self._informativeText
+        data['currentValue'] = self._currentValue
+        data['defaultValue'] = self._defaultValue
+        data['type'] = self._type
+        return data
 
     title = Property(str, lambda self: self._title, notify=dataChanged)
 
@@ -77,6 +95,31 @@ class ComboBox(AbstractWidget):
                          AbstractWidget.WidgetType.ComboBox, parent)
         self._labelModel = QStandardItemModel(self)
 
+    @classmethod
+    def load(cls, data):
+        print(data)
+        widget = cls(data['title'], data['informativeText'])
+        widget._currentValue = data['currentValue']
+        widget._defaultValue = data['defaultValue']
+        for item in data['labels']:
+            # print(item)
+            widget.append(item[0], item[1])
+        # print(widget._labelModel.item(0, 0).data(Qt.DisplayRole))
+        return widget
+
+    def toPlainData(self):
+        data = AbstractWidget.toPlainData(self)
+        labels = []
+        for i in range(self._labelModel.rowCount()):
+            item = self._labelModel.item(i, 0)
+            # change item to the type can be pickled
+            label = item.data(Qt.DisplayRole)
+            tip = item.data(Qt.ToolTipRole)
+            print([label, tip])
+            labels.append([label, tip])
+        data['labels'] = labels
+        return data
+
     def append(self, label, tip=None):
         self.insert(self._labelModel.rowCount(), label, tip)
 
@@ -115,6 +158,21 @@ class Slider(AbstractWidget):
         self._stepSize = 0.0
         self._maximum = 0.0
 
+    @classmethod
+    def load(cls, data):
+        widget = cls(data['title'], data['informativeText'])
+        widget._minimum = data['minimum']
+        widget._maximum = data['maximum']
+        widget.stepSize = data['stepSize']
+        return widget
+
+    def toPlainData(self):
+        data = AbstractWidget.toPlainData(self)
+        data['minimum'] = self._minimum
+        data['maximum'] = self._maximum
+        data['stepSize'] = self._stepSize
+        return data
+
     minimum = Property(float, lambda self: self._minimum)
 
     @minimum.setter
@@ -132,8 +190,8 @@ class Slider(AbstractWidget):
             self.dataChanged.emit("step")
 
     maximum = Property(float,
-                            lambda self: self._maximum,
-                            notify=AbstractWidget.dataChanged)
+                       lambda self: self._maximum,
+                       notify=AbstractWidget.dataChanged)
 
     @maximum.setter
     def maximum(self, maximum):
@@ -154,9 +212,26 @@ class LineEdit(AbstractWidget):
         self._maximumLength = 0
         self._validator = QValidator()
 
+    @classmethod
+    def load(cls, data):
+        widget = cls(data['title'], data['informativeText'])
+        widget._placeholderText = data['placeholderText']
+        widget._maximumLength = data['maximumLength']
+        # to load self._validator
+        # TODO
+        return widget
+
+    def toPlainData(self):
+        data = AbstractWidget.toPlainData(self)
+        data['placeholderText'] = self._placeholderText
+        data['maximumLength'] = self._maximumLength
+        # to save self._validator
+        # TODO
+        return data
+
     placeholderText = Property(str,
-                           lambda self: self._placeholderText,
-                           notify=AbstractWidget.dataChanged)
+                               lambda self: self._placeholderText,
+                               notify=AbstractWidget.dataChanged)
 
     @placeholderText.setter
     def placeholderText(self, placeholderText):
@@ -165,8 +240,8 @@ class LineEdit(AbstractWidget):
             self.dataChanged.emit("placeholderText")
 
     maximumLength = Property(int,
-                         lambda self: self._maximumLength,
-                         notify=AbstractWidget.dataChanged)
+                             lambda self: self._maximumLength,
+                             notify=AbstractWidget.dataChanged)
 
     @maximumLength.setter
     def maximumLength(self, maximumLength):
@@ -196,6 +271,19 @@ class SpinBox(AbstractWidget):
         self._range = ()
         self._precision = 0
 
+    @classmethod
+    def load(cls, data):
+        widget = cls(data['title'], data['informativeText'])
+        widget._range = data['range']
+        widget._precision = data['precision']
+        return widget
+
+    def toPlainData(self):
+        data = AbstractWidget.toPlainData(self)
+        data['range'] = self._range
+        data['precision'] = self._precision
+        return data
+
     range = Property(tuple, lambda self: self._range)
 
     @range.setter
@@ -216,6 +304,9 @@ class SpinBox(AbstractWidget):
 
 
 class Selector(AbstractWidget):
+    @QEnum
+    class SelectorType(Enum):
+        Rectangular, Polygen = range(2)
 
     def __init__(self,
                  title,
@@ -223,3 +314,22 @@ class Selector(AbstractWidget):
                  parent: QObject | None = None) -> None:
         super().__init__(title, informativeText,
                          AbstractWidget.WidgetType.Selector, parent)
+        self._selectorType = None
+        self._pointCount = None
+        self._defaultValue = []
+
+    selectorType = Property(int, lambda self: self._selectorType.value, constant=True)
+
+    @Property(int, notify=AbstractWidget.dataChanged)
+    def pointCount(self):
+        if self._selectorType == Selector.SelectorType.Rectangular:
+            return 4
+        return self._pointCount
+
+    @pointCount.setter
+    def pointCount(self, count):
+        if self._selectorType == Selector.SelectorType.Rectangular:
+            return
+        if self._pointCount != count:
+            self._pointCount = count
+            self.dataChanged.emit("pointCount")

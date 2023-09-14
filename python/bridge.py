@@ -190,12 +190,13 @@ class Bridge(QObject):
             path = drive_letter + ":" + path[3:]
         return Path(path).resolve()
 
-    @Slot(str, SessionData, int)
+    @Slot(str, SessionData, int, result=bool)
     def export(self, path, data, quality):
         if -1 <= quality <= 100:
             pass
         else:
-            raise Exception('quality out of range, it should be between -1 and 100')
+            self._errorString = 'quality out of range, it should be between -1 and 100'
+            return False
         type = 'JPG'
         if path.endswith('.jpg'):
             type = 'JPG'
@@ -203,13 +204,17 @@ class Bridge(QObject):
             type = 'PNG'
         elif path.endswith('.jpeg'):
             type = 'JPEG'
+        elif path.endswith('.bmp'):
+            type = 'BMP'
+        else:
+            self._errorString = 'Unsupported format'
+            return False
         data.frame[0].save(path, type, quality)
+        return True
 
     @Slot(SessionData, str, result=bool)
     def save(self, data, url: QUrl = None):
         path = self._trimPath(QUrl(url))
-        if not path.suffix == '.cvsession':
-            path += '.cvsession'
         try:
             with open(path, 'wb') as f:
                 save_data = dict()
@@ -227,7 +232,6 @@ class Bridge(QObject):
                         pass
                 pickle.dump(save_data, f)
             data._sessionPath = url
-            print('Saved successfully')
             return True
         except Exception as e:
             self._errorString = str(e)

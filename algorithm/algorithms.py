@@ -1,6 +1,6 @@
-from PySide6.QtCore import QObject
+from PySide6.QtCore import QObject, QPoint
 from python.algo_model import Algorithm, AlgorithmGroup
-from python.algo_widgets import ComboBox, LineEdit
+from python.algo_widgets import ComboBox, LineEdit, Selector
 from PySide6.QtGui import QIntValidator
 from .cvt_color import CvtColor
 from .sine_transformation import Sine_transformation
@@ -17,6 +17,7 @@ group.title = 'Image Effects'
 
 # 第15个函数
 class Gray_Picture(Algorithm):
+
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
         self.title = 'Gray Picture'
@@ -34,9 +35,11 @@ group.algorithms.append(gray_picture)
 
 # 第16个函数
 class Mean_blur(Algorithm):
+
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
-        self.combobox = ComboBox("Kernel size", "Set the kernel size of the blur algorithm")
+        self.combobox = ComboBox("Kernel size",
+                                 "Set the kernel size of the blur algorithm")
         self.combobox.append("1", "")
         self.combobox.append("3", "")
         self.combobox.append("5", "")
@@ -59,9 +62,11 @@ group.algorithms.append(mean_blur)
 
 # 第17个函数
 class Median_blur(Algorithm):
+
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
-        self.combobox = ComboBox("Kernel size", "Set the kernel size of the blur algorithm")
+        self.combobox = ComboBox("Kernel size",
+                                 "Set the kernel size of the blur algorithm")
         self.combobox.append("1", "")
         self.combobox.append("3", "")
         self.combobox.append("5", "")
@@ -84,9 +89,11 @@ group.algorithms.append(median_blur)
 
 # 第18个函数
 class Gaussian_blur(Algorithm):
+
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
-        self.combobox = ComboBox("Kernel size", "Set the kernel size of the blur algorithm")
+        self.combobox = ComboBox("Kernel size",
+                                 "Set the kernel size of the blur algorithm")
         self.combobox.append("1", "")
         self.combobox.append("3", "")
         self.combobox.append("5", "")
@@ -109,6 +116,7 @@ group.algorithms.append(gaussian_blur)
 
 # 19
 class Threshold(Algorithm):
+
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
 
@@ -124,7 +132,6 @@ class Threshold(Algorithm):
         self.combobox.append("To Zero Inv", "")
         self.combobox.append("None")
         self.combobox.defaultValue = "None"
-        
 
         self.lineEdit = LineEdit("Thresh", "0-255")
         self.lineEdit.defaultValue = 0
@@ -164,6 +171,7 @@ group.algorithms.append(threshold)
 
 # 20
 class Edge(Algorithm):
+
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
 
@@ -209,6 +217,7 @@ group.algorithms.append(edge)
 
 
 class Morph(Algorithm):
+
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
 
@@ -217,7 +226,8 @@ class Morph(Algorithm):
         self.informativeText = 'Morph'
 
         # 一个参数
-        self.combobox1 = ComboBox("Operate", "Choose which operate you want to use")
+        self.combobox1 = ComboBox("Operate",
+                                  "Choose which operate you want to use")
         self.combobox1.append("Erode", "")
         self.combobox1.append("Dilate", "")
         self.combobox1.append("Open", "")
@@ -289,6 +299,7 @@ group.algorithms.append(morph)
 
 # 第23个函数
 class Equalize(Algorithm):
+
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
 
@@ -297,7 +308,8 @@ class Equalize(Algorithm):
         self.informativeText = 'Equalize'
 
         # 一个参数
-        self.combobox1 = ComboBox("Kind", "Choose which Channel you want to equalize")
+        self.combobox1 = ComboBox("Kind",
+                                  "Choose which Channel you want to equalize")
         self.combobox1.append("B", "Blue Channel")
         self.combobox1.append("G", "Green Channel")
         self.combobox1.append("R", "Red Channel")
@@ -310,7 +322,7 @@ class Equalize(Algorithm):
         # 获得参数
         kind = self.combobox1.currentValue
 
-        if kind == 'None': 
+        if kind == 'None':
             return img
 
         # 代码位置
@@ -330,6 +342,7 @@ group.algorithms.append(equalize)
 
 # 第26个函数
 class Flip_picture(Algorithm):
+
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
 
@@ -365,27 +378,43 @@ group.algorithms.append(flip_picture)
 
 
 class SelectForeground(Algorithm):
+
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
         self.title = 'Select Foregound'
         self.informativeText = 'Select foreground'
-        
+        self.selector = Selector(Selector.SelectorType.Rectangular,
+                                 "Selector ROI")
+        self.addWidget(self.selector)
+
     def apply(self, image):
-        roi = [0, 0, image.shape[0] - 1, image.shape[1] - 1]
+        if len(self.selector.currentValue) < 4:
+            return image
+        left_top_point = QPoint(
+            min(point.x() for point in self.selector.currentValue),
+            min(point.y() for point in self.selector.currentValue))
+        right_bottom_point = QPoint(
+            max(point.x() for point in self.selector.currentValue),
+            max(point.y() for point in self.selector.currentValue))
+
+        width = right_bottom_point.x() - left_top_point.x()
+        height = right_bottom_point.y() - left_top_point.y()
+        roi = [left_top_point.x(), left_top_point.y(), width, height]
         mask = np.zeros(image.shape[:2], np.uint8)
 
         bgdModel = np.zeros((1, 65), np.float64)
         fgdModel = np.zeros((1, 65), np.float64)
         image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
 
-        cv2.grabCut(image, mask, roi, bgdModel, fgdModel, 5, cv2.GC_INIT_WITH_RECT)
+        cv2.grabCut(image, mask, roi, bgdModel, fgdModel, 5,
+                    cv2.GC_INIT_WITH_RECT)
 
         mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
 
         result = image * mask2[:, :, np.newaxis]
 
-
-        rgba_image = np.zeros((image.shape[0], image.shape[1], 4), dtype=np.uint8)
+        rgba_image = np.zeros((image.shape[0], image.shape[1], 4),
+                              dtype=np.uint8)
         rgba_image[:, :, :3] = result
 
         black_pixels = np.all(rgba_image[:, :, :3] != [0, 0, 0], axis=2)
@@ -393,9 +422,9 @@ class SelectForeground(Algorithm):
 
         return rgba_image
 
+
 selectForeground = SelectForeground()
 group.algorithms.append(selectForeground)
-
 
 cvtColor = CvtColor()
 group.algorithms.append(cvtColor)

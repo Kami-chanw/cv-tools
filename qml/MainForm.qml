@@ -230,6 +230,7 @@ ShadowWindow {
         id: saveFileDialog
         fileMode: FileDialog.SaveFile
         currentFolder: mainFormSettings.recentSaveFolder
+        defaultSuffix: "cvsession"
         nameFilters: ["Cv Tools Session File (*.cvsession)"]
         onAccepted: {
             mainFormSettings.recentSaveFolder = currentFolder
@@ -241,6 +242,24 @@ ShadowWindow {
     FileDialog {
         id: exportFileDialog
         fileMode: FileDialog.SaveFile
+        nameFilters: ["Joint Photographic Experts Group (*.jpg, *.jpeg)", "Portable Network Graphics (*.png)", "Windows Bitmap (*.bmp)"]
+        defaultSuffix: {
+            switch (selectedNameFilter.index) {
+            case 0:
+                return "jpg"
+            case 1:
+                return "png"
+            case 2:
+                return "bmp"
+            }
+        }
+
+        onAccepted: {
+            if (!bridge.export(currentFile, sessionData, 100)) {
+                messageDialog.text = bridge.errorString
+                messageDialog.open()
+            }
+        }
     }
 
     MenuBar {

@@ -84,7 +84,7 @@ class Algorithm(AbstractAlgorithm):
                 'enabled': self._enabled, 'types': types}
 
     def apply(self, image):
-        return None
+        return image
 
     def indexFromWidget(self, widget: AbstractWidget):
         for row in range(self._widgets.rowCount()):

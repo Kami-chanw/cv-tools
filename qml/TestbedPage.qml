@@ -9,6 +9,17 @@ Item {
     property SessionData sessionData
     property alias imageMouseArea: imageMouseArea
 
+    onWidthChanged: {
+        mask.children = []
+        canvas.repaint()
+        imageMouseArea.isSelecting = true
+    }
+    onHeightChanged: {
+        mask.children = []
+        canvas.repaint()
+        imageMouseArea.isSelecting = true
+    }
+
     Connections {
         target: imageProvider
         function onSourceChanged() {
@@ -36,6 +47,7 @@ Item {
         Item {
             SplitView.fillHeight: true
             SplitView.fillWidth: true
+
             Image {
                 id: image
                 fillMode: Image.PreserveAspectFit
@@ -68,9 +80,11 @@ Item {
                     y: centerY - radius
                     onXChanged: {
                         centerX = x + radius
+                        dragHandler.enabled = imageMouseArea.containsInPaintedImage(x, y)
                     }
                     onYChanged: {
                         centerY = y + radius
+                        dragHandler.enabled = imageMouseArea.containsInPaintedImage(x, y)
                     }
 
                     color: "#0078D4"
@@ -129,8 +143,13 @@ Item {
                     let result = []
                     const originalSize = sessionData.imageSize
                     for (var child of mask.children) {
-                        result.push(Qt.point(child.centerX * originalSize.width / image.width,
-                                             child.centerY * originalSize.height / image.height))
+                        let projectedX = (child.centerX - (image.width - image.paintedWidth) / 2)
+                            * originalSize.width / image.paintedWidth
+                        let projectedY = (child.centerY - (image.height - image.paintedHeight) / 2)
+                            * originalSize.height / image.paintedHeight
+                        result.push(Qt.point(Math.min(Math.max(0, projectedX), image.paintedWidth),
+                                             Math.min(Math.max(0, projectedY),
+                                                      image.paintedHeight)))
                     }
                     mask.children = []
                     canvas.repaint()
@@ -139,8 +158,16 @@ Item {
                     return result
                 }
 
+                function containsInPaintedImage(px, py) {
+                    // left-top of painted image
+                    const x = (image.width - image.paintedWidth) / 2
+                    const y = (image.height - image.paintedHeight) / 2
+                    return x <= px && px <= x + image.paintedWidth && y <= py
+                            && py <= y + image.paintedHeight
+                }
+
                 onClicked: {
-                    if (!isSelecting)
+                    if (!isSelecting || !containsInPaintedImage(mouseX, mouseY))
                         return
                     switch (selectorType) {
                     case Enums.SelectorType.Polygen:
@@ -164,12 +191,13 @@ Item {
                 }
 
                 onPressed: {
-                    if (!isSelecting)
+                    if (!isSelecting || !containsInPaintedImage(mouseX, mouseY))
                         return
                     switch (selectorType) {
                     case Enums.SelectorType.Polygen:
                         break
                     case Enums.SelectorType.Rectangular:
+
                         for (var i = 0; i < 4; ++i) {
                             let d = dot.createObject(mask, {
                                                          "centerX": mouseX,
@@ -211,7 +239,7 @@ Item {
                 }
 
                 onPositionChanged: {
-                    if (!isSelecting)
+                    if (!isSelecting || !containsInPaintedImage(mouseX, mouseY))
                         return
                     switch (selectorType) {
                     case Enums.SelectorType.Polygen:
@@ -219,6 +247,11 @@ Item {
                     case Enums.SelectorType.Rectangular:
                         if (mask.children.length === 0)
                             return
+                        else if (!pressed) {
+                            isSelecting = false
+                            return
+                        }
+
                         mask.children[2].centerX = mouseX
                         mask.children[2].centerY = mouseY
                     }
@@ -226,7 +259,7 @@ Item {
                 }
 
                 onReleased: {
-                    if (!isSelecting)
+                    if (!isSelecting || !containsInPaintedImage(mouseX, mouseY))
                         return
                     switch (selectorType) {
                     case Enums.SelectorType.Polygen:

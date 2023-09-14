@@ -8,6 +8,7 @@ import sys
 
 
 class AbstractWidget(QObject):
+
     @QEnum
     class WidgetType(Enum):
         ComboBox, LineEdit, SpinBox, Slider, Selector, CheckBox = range(6)
@@ -167,7 +168,9 @@ class Slider(AbstractWidget):
         self._maximum = 0.0
 
     minimumChanged = Signal()
-    minimum = Property(float, lambda self: self._minimum, notify=minimumChanged)
+    minimum = Property(float,
+                       lambda self: self._minimum,
+                       notify=minimumChanged)
 
     @classmethod
     def load(cls, data):
@@ -191,7 +194,9 @@ class Slider(AbstractWidget):
             self.minimumChanged.emit()
 
     stepSizeChanged = Signal()
-    stepSize = Property(float, lambda self: self._stepSize, notify=stepSizeChanged)
+    stepSize = Property(float,
+                        lambda self: self._stepSize,
+                        notify=stepSizeChanged)
 
     @stepSize.setter
     def stepSize(self, step):
@@ -200,7 +205,9 @@ class Slider(AbstractWidget):
             self.stepSizeChanged.emit()
 
     maximumChanged = Signal()
-    maximum = Property(float, lambda self: self._maximum, notify=maximumChanged)
+    maximum = Property(float,
+                       lambda self: self._maximum,
+                       notify=maximumChanged)
 
     @maximum.setter
     def maximum(self, maximum):
@@ -239,7 +246,9 @@ class LineEdit(AbstractWidget):
         return data
 
     placeholderTextChanged = Signal()
-    placeholderText = Property(str, lambda self: self._placeholderText, notify=placeholderTextChanged)
+    placeholderText = Property(str,
+                               lambda self: self._placeholderText,
+                               notify=placeholderTextChanged)
 
     @placeholderText.setter
     def placeholderText(self, placeholderText):
@@ -248,7 +257,9 @@ class LineEdit(AbstractWidget):
             self.placeholderTextChanged.emit()
 
     maximumLengthChanged = Signal()
-    maximumLength = Property(int, lambda self: self._maximumLength, notify=maximumLengthChanged)
+    maximumLength = Property(int,
+                             lambda self: self._maximumLength,
+                             notify=maximumLengthChanged)
 
     @maximumLength.setter
     def maximumLength(self, maximumLength):
@@ -257,7 +268,9 @@ class LineEdit(AbstractWidget):
             self.maximumLengthChanged.emit()
 
     validatorChanged = Signal()
-    validator = Property(QObject, lambda self: self._validator, notify=validatorChanged)
+    validator = Property(QObject,
+                         lambda self: self._validator,
+                         notify=validatorChanged)
 
     @validator.setter
     def validator(self, validator):
@@ -300,22 +313,29 @@ class CheckBox(AbstractWidget):
 class Selector(AbstractWidget):
 
     class SelectorType(Enum):
-        Rectangular, Polygon = range(2)
+        Rectangular, Polygon, Auto = range(3)
 
     def __init__(self,
                  selectorType: SelectorType,
                  title,
                  informativeText=None,
+                 pointCount=None,
                  parent: QObject | None = None) -> None:
         super().__init__(title, informativeText,
                          AbstractWidget.WidgetType.Selector, parent)
         self._selectorType = selectorType
-        self._pointCount = None
         self._defaultValue = []
+        if selectorType == Selector.SelectorType.Rectangular:
+            self._pointCount = 4
+        elif selectorType == Selector.SelectorType.Polygon:
+            self._pointCount = pointCount
+        else:
+            self._selectorType = None
 
     @classmethod
     def load(cls, data):
-        widget = cls(Selector.SelectorType(data['selector_type']), data['title'], data['informativeText'])
+        widget = cls(Selector.SelectorType(data['selector_type']),
+                     data['title'], data['informativeText'])
         widget._defaultValue = data['default_value']
         widget._pointCount = data['point_count']
         return widget
@@ -341,8 +361,6 @@ class Selector(AbstractWidget):
 
     @pointCount.setter
     def pointCount(self, count):
-        if self._selectorType == Selector.SelectorType.Rectangular:
-            return
-        if self._pointCount != count:
+        if self._selectorType == Selector.SelectorType.Polygon and self._pointCount != count:
             self._pointCount = count
             self.pointCountChanged.emit()

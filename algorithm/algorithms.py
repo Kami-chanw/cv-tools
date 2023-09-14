@@ -2,6 +2,9 @@ from PySide6.QtCore import QObject
 from python.algo_model import Algorithm, AlgorithmGroup
 from python.algo_widgets import ComboBox, LineEdit
 from PySide6.QtGui import QIntValidator
+from .cvt_color import CvtColor
+from .sine_transformation import Sine_transformation
+from .swirl import Swirl
 import cv2
 import numpy as np
 
@@ -352,5 +355,14 @@ class Flip_picture(Algorithm):
 
 flip_picture = Flip_picture()
 group.algorithms.append(flip_picture)
+
+cvtColor = CvtColor()
+group.algorithms.append(cvtColor)
+
+swirl = Swirl()
+group.algorithms.append(swirl)
+
+sine_transformation = Sine_transformation()
+group.algorithms.append(sine_transformation)
 
 __all__ = ["group"]

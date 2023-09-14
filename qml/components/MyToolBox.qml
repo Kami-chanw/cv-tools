@@ -49,6 +49,7 @@ ToolBox {
                 id: row
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
+                anchors.rightMargin: 10
                 spacing: 3
                 //                visible: boxDelegate.hovered
                 MyIconButton {
@@ -74,6 +75,7 @@ ToolBox {
                 }
             }
         }
+
         background: Item {
             Rectangle {
                 anchors.fill: parent

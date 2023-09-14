@@ -17,6 +17,7 @@ class CvtColor(Algorithm):
         self.combobox.append("Gray", "Convert color space from BGR to gray scale")
         self.combobox.append("None")
         self.combobox.defaultValue = "None"
+        self.addWidget(self.combobox)
 
     def apply(self, image):
         if self.combobox.currentValue == "None":

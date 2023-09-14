@@ -32,6 +32,7 @@ Button {
         propagateComposedEvents: true
         onClicked: e => {
                        control.onClicked()
+                       e.accepted = false
                    }
     }
 }

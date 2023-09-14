@@ -47,14 +47,14 @@ class IntValidator(QIntValidator, ValidatorExtend):
         self.setTop(top)
         self._defaultValue = defaultValue
 
-    @Slot(str, int, result=object)
-    def validate(self, input: str, pos: int) -> object:
+    @Slot(str, int, result=QValidator.State)
+    def validate(self, input: str, pos: int):
         if not input.isdigit():
             self.errorString = "The input value must be an integer."
             return QValidator.State.Invalid
-        if super().validate(input, pos) == QValidator.State.Invalid:
+        if super().validate(input, pos)[0] == QValidator.State.Invalid:
             self.errorString = f"The input value must be in range {self.bottom()}~{self.top()}."
-        return super().validate(input, pos)
+        return super().validate(input, pos)[0]
 
     @Slot(str,result=str)
     def fixup(self, input: str) -> str:
@@ -83,14 +83,16 @@ class DoubleValidator(QDoubleValidator, ValidatorExtend):
                          parent=parent)
         self._defaultValue = defaultValue
 
-    def validate(self, input: str, pos: int) -> object:
+    @Slot(str, int, result=QValidator.State)
+    def validate(self, input: str, pos: int):
         if not input.isdecimal():
             self.errorString = "The input value must be a decimal."
             return QValidator.State.Invalid
         if super().validate(input, pos) == QValidator.State.Invalid:
             self.errorString = f"The input value must be in range {self.bottom()}~{self.top()}."
-        return super().validate(input, pos)
+        return super().validate(input, pos)[0]
 
+    @Slot(str,result=str) 
     def fixup(self, input: str) -> str:
         if not self._defaultValue is None:
             return str(self._defaultValue)
@@ -112,11 +114,13 @@ class RegularExpressionValidator(QRegularExpressionValidator, ValidatorExtend):
         super().__init__(re=re, parent=parent)
         self._defaultValue = defaultValue
 
-    def validate(self, input: str, pos: int) -> object:
+    @Slot(str, int, result=QValidator.State)
+    def validate(self, input: str, pos: int):
         if super().validate(input, pos) == QValidator.State.Invalid:
             self._errorString = "Unmatch the requirements."
-        return super().validate(input, pos)
+        return super().validate(input, pos)[0]
 
+    @Slot(str,result=str)
     def fixup(self, input: str) -> str:
         if not self._defaultValue is None:
             return str(self._defaultValue)

@@ -7,13 +7,13 @@ TextField {
     verticalAlignment: TextEdit.AlignVCenter
     color: "#cccccc"
     placeholderTextColor: "#8E8E8E"
+    selectionColor: "#0A67D6"
+    selectedTextColor: "white"
     font.pointSize: 8
-    selectionColor: "white"
-    validator: widget?.validator
     property string fullText
     required property var widget
-    placeholderText: widget?.placeholderText
-    maximumLength: widget?.maximumLength
+    placeholderText: widget?.placeholderText ?? ""
+    maximumLength: widget?.maximumLength ?? -1
 
     selectByMouse: true
     background: Rectangle {
@@ -30,27 +30,39 @@ TextField {
         id: errorRect
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: parent.top
-        implicitHeight: 28
+        anchors.top: parent.bottom
+        anchors.topMargin: -1
+        height: errorText.contentHeight + errorText.topPadding + errorText.bottomPadding
         border.color: "#BE1100"
+        visible: false
         color: "#5A1D1D"
         Text {
+            id: errorText
+            width: errorRect.width
+            topPadding: 6
+            bottomPadding: topPadding
+            leftPadding: control.leftPadding
+            rightPadding: control.rightPadding
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.left: parent.left
             font: control.font
+            color: "#c7c7c7"
             text: widget?.validator.errorString ?? ""
+            wrapMode: Text.Wrap
         }
     }
 
     Connections {
         function onTextChanged() {
-            if (text !== metrics.elidedText)
-                fullText = text
-            errorRect.visible = widget.validator.validate(
-                        fullText, cursorPosition) === Enums.Validator.Invalid
+            if (control.text !== metrics.elidedText)
+                control.fullText = control.text
+            errorRect.visible = Number(widget.validator.validate(
+                                           control.fullText,
+                                           control.cursorPosition)) === Enums.State.Invalid
         }
         function onEditingFinished() {
-            fullText = widget.validator(fullText)
-            if (result === Enums.Validator.Acceptable)
-                widget.currentValue = fullText
+            control.fullText = widget.validator.fixup(control.fullText)
+            widget.currentValue = control.fullText
         }
     }
 

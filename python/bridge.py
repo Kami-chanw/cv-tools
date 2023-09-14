@@ -23,7 +23,7 @@ import pickle
 class Enums(QObject):
     WidgetType = QEnum(AbstractWidget.WidgetType)
     SelectorType = QEnum(Selector.SelectorType)
-    Validator = QEnum(QValidator.State)
+    State = QEnum(QValidator.State)
 
 
 @QmlElement

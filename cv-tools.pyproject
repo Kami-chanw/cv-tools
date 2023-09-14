@@ -16,7 +16,18 @@
         "qml/components/MySplitView.qml",
         "qml/components/MyTreeView.qml",
         "qml/components/MyTreeViewDelegate.qml",
-        "res.qrc"
+        "res.qrc",
+        "qml/components/MyToolBox.qml",
+        "qml/components/MySplitHandle.qml",
+        "qml/Test.qml",
+        "qml/AlgoListItem.qml",
+        "qml/algo_widgets/AlgoComboBox.qml",
+        "qml/components/MyIconButton.qml",
+        "qml/components/MyToolTip.qml",
+        "qml/algo_widgets/AlgoSlider.qml",
+        "qml/algo_widgets/AlgoLineEdit.qml",
+        "qml/algo_widgets/AlgoCheckBox.qml",
+        "qml/algo_widgets/AlgoSelector.qml"
     ],
     "qmlImportPaths": [
         "3rdparty/KmcUI/src/imports"

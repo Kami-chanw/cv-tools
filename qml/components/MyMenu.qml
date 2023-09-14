@@ -1,8 +1,11 @@
 import QtQuick
 import QtQuick.Controls
+import KmcUI.Effects
 
 Menu {
     id: control
+
+    implicitWidth: 200
 
     palette {
         text: "#ffffff"
@@ -10,6 +13,9 @@ Menu {
         inactive {
             base: "#1F1F1F"
             text: "#BFBFBF"
+        }
+        disabled {
+            text: "#535353"
         }
     }
 
@@ -30,8 +36,14 @@ Menu {
 
     delegate: MenuItem {
         id: menuItem
-        implicitWidth: 200
+        implicitWidth: control.implicitWidth
         implicitHeight: 30
+
+        function textColor() {
+            if (menuItem.enabled === false)
+                return control.palette.disabled.text
+            return menuItem.highlighted ? control.palette.text : control.palette.inactive.text
+        }
 
         arrow: Canvas {
             x: parent.width - width - 6
@@ -40,7 +52,7 @@ Menu {
             visible: menuItem.subMenu
             onPaint: {
                 var ctx = getContext("2d")
-                ctx.strokeStyle = menuItem.highlighted ? control.palette.text : control.palette.inactive.text
+                ctx.strokeStyle = menuItem.textColor()
                 const leftTop = width * 0.35
                 const right = width * 0.5
                 ctx.moveTo(leftTop, leftTop)
@@ -57,7 +69,7 @@ Menu {
                 anchors.left: parent.left
                 text: menuItem.text
                 font: menuItem.font
-                color: menuItem.highlighted ? control.palette.text : control.palette.inactive.text
+                color: menuItem.textColor()
                 horizontalAlignment: Text.AlignLeft
                 verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideRight
@@ -66,9 +78,9 @@ Menu {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.right: parent.right
                 rightPadding: menuItem.arrow.width
-                text: menuItem.action.shortcut?.toString() ?? ""
+                text: menuItem.action?.shortcut?.toString() ?? ""
                 font: menuItem.font
-                color: menuItem.highlighted ? control.palette.text : control.palette.inactive.text
+                color: menuItem.textColor()
                 horizontalAlignment: Text.AlignRight
                 verticalAlignment: Text.AlignVCenter
             }
@@ -93,14 +105,25 @@ Menu {
         }
     }
 
-    background: Rectangle {
-        implicitWidth: 200
+    background: Item {
         implicitHeight: 34
-        color: control.palette.inactive.base
-        border {
-            width: 1
-            color: "#454545"
+        implicitWidth: control.implicitWidth
+        RectangularGlow {
+            anchors.fill: menuBackground
+            color: "#000000"
+            glowRadius: 3
+            cornerRadius: menuBackground.radius + glowRadius
         }
-        radius: 6
+
+        Rectangle {
+            id: menuBackground
+            anchors.fill: parent
+            color: control.palette.inactive.base
+            border {
+                width: 1
+                color: "#454545"
+            }
+            radius: 6
+        }
     }
 }

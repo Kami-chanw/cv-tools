@@ -20,7 +20,7 @@ KmcTreeViewDelegate {
         implicitWidth: 22
         ColorIcon {
             anchors.centerIn: parent
-            source: "qrc:/icons/arrow.svg"
+            source: "qrc:/assets/icons/arrow.svg"
             visible: hasChildren
             rotation: expanded ? 90 : 0
             height: 13

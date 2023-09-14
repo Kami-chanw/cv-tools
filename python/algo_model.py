@@ -18,7 +18,7 @@ class AbstractAlgorithm(QObject):
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
         self._title = None
-        self._informativeTitle = None
+        self._informativeText = None
 
     titleChanged = Signal()
     title = Property(str, lambda self: self._title, notify=titleChanged)
@@ -31,13 +31,13 @@ class AbstractAlgorithm(QObject):
 
     informativeTextChanged = Signal()
     informativeText = Property(str,
-                               lambda self: self._informativeTitle,
+                               lambda self: self._informativeText,
                                notify=informativeTextChanged)
 
     @informativeText.setter
     def informativeText(self, text: str):
-        if self._informativeTitle != text:
-            self._informativeTitle = text
+        if self._informativeText != text:
+            self._informativeText = text
             self.informativeTextChanged.emit()
 
 
@@ -61,17 +61,16 @@ class Algorithm(AbstractAlgorithm):
 
     @classmethod
     def load(cls, data: dict):
-        model = cls()
+        algo = cls()
         for i in range(len(data['types'])):
-            _type = str(data['types'][i]).split('.')[1]
-            class_to_call = globals()[_type]
+            widgetType = str(data['types'][i]).split('.')[1]
+            class_to_call = globals()[widgetType]
             item = class_to_call.load(data['widgets'][i])
-            # Set the (i,0) item here to the variable item
-            temp = QStandardItem()
-            temp.setData(item, Qt.DisplayRole)
-            model._widgets.setItem(i, 0, temp)
-        model._enabled = data['enabled']
-        return model
+            algo.addWidget(item)
+        algo._enabled = data['enabled']
+        algo._title = data['title']
+        algo._informativeText = data['informativeText']
+        return algo
 
     def toPlainData(self):
         widgets = []
@@ -79,13 +78,9 @@ class Algorithm(AbstractAlgorithm):
         for i in range(self._widgets.rowCount()):
             item = self._widgets.item(i, 0).data(Qt.UserRole)
             print(item._type)
-            if item is not None:
-                widgets.append(item.toPlainData())
-                types.append(item._type)
-            else:
-                widgets.append(None)
-                types.append(None)
-        return {'title': self._title, 'informativeTitle': self._informativeTitle, 'widgets': widgets,
+            widgets.append(item.toPlainData())
+            types.append(item._type)
+        return {'title': self._title, 'informativeText': self._informativeText, 'widgets': widgets,
                 'enabled': self._enabled, 'types': types}
 
     def apply(self, image):

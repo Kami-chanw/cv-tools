@@ -13,7 +13,10 @@ Slider {
         toolTipBase: "white"
         shadow: "#8e8e8e"
     }
-    Component.onCompleted: value = widget.defaultValue
+    Component.onCompleted: {
+        if (widget.defaultValue !== undefined)
+            value = widget.defaultValue
+    }
     onValueChanged: {
         widget.currentValue = value
     }

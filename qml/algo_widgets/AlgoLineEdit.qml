@@ -26,30 +26,32 @@ TextField {
     }
 
     text: activeFocus ? fullText : metrics.elidedText
-
-    Rectangle {
+    Loader {
         id: errorRect
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.bottom
         anchors.topMargin: -1
-        height: errorText.contentHeight + errorText.topPadding + errorText.bottomPadding
-        border.color: "#BE1100"
-        visible: false
-        color: "#5A1D1D"
-        Text {
-            id: errorText
-            width: errorRect.width
-            topPadding: 6
-            bottomPadding: topPadding
-            leftPadding: control.leftPadding
-            rightPadding: control.rightPadding
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.left: parent.left
-            font: control.font
-            color: "#c7c7c7"
-            text: widget?.validator.errorString ?? ""
-            wrapMode: Text.Wrap
+        active: !!control.widget.validator
+        sourceComponent: Rectangle {
+            border.color: "#BE1100"
+            height: errorText.contentHeight + errorText.topPadding + errorText.bottomPadding
+            visible: false
+            color: "#5A1D1D"
+            Text {
+                id: errorText
+                width: errorRect.width
+                topPadding: 6
+                bottomPadding: topPadding
+                leftPadding: control.leftPadding
+                rightPadding: control.rightPadding
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: parent.left
+                font: control.font
+                color: "#c7c7c7"
+                text: widget?.validator.errorString ?? ""
+                wrapMode: Text.Wrap
+            }
         }
     }
 

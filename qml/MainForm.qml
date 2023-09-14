@@ -168,7 +168,7 @@ ShadowWindow {
 
     function readSessionData(path) {
         root.sessionData = bridge.parseFile(path, imageProvider)
-        if (!sessionData) {
+        if (!root.sessionData) {
             messageDialog.text = bridge.errorString
             messageDialog.open()
         }
@@ -234,7 +234,7 @@ ShadowWindow {
         onAccepted: {
             mainFormSettings.recentSaveFolder = currentFolder
             bridge.save(root.sessionData, currentFile)
-            mainFormSettings.recentSession = bridge
+            mainFormSettings.recentSession = currentFile
         }
     }
 

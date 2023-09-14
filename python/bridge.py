@@ -83,6 +83,7 @@ class SessionData(QObject):
                     reader = QImageReader(str(self._filePath))
                     self._origin_image = reader.read()
                     self.frame = [self._origin_image]
+                    self.applyAlgorithms(0)
         else:
             raise ValueError("unknown file")
 
@@ -215,6 +216,8 @@ class Bridge(QObject):
                     if name.startswith('_'):
                         if name == '_origin_image':
                             pass
+                        elif name == '_name':
+                            save_data[name] = path.stem
                         elif name == '_algoModel':
                             save_data[name] = [value[0].toPlainData(), value[1].toPlainData()]
                         else:
@@ -225,8 +228,8 @@ class Bridge(QObject):
             data._sessionPath = url
             print('Saved successfully')
             return True
-        except FileNotFoundError as e:
-            print(e)
+        except Exception as e:
+            self._errorString = str(e)
             return False
 
     @Property(str, constant=True)

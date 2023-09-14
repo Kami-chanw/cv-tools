@@ -93,7 +93,7 @@ Flickable {
                             icon.height: 15
                             icon.color: "#cccccc"
                             visible: !!content.currentWidget?.informativeText
-                            //                            background: Item {}
+                            background: Item {}
                             toolTip: content.currentWidget?.informativeText
                         }
                     }

@@ -127,8 +127,10 @@ Item {
                 function finishSelection() {
                     isSelecting = false
                     let result = []
+                    const originalSize = image.sourceSize
                     for (var child of mask.children) {
-                        result.push(Qt.point(child.centerX, child.centerY))
+                        result.push(Qt.point(child.centerX * originalSize.width / image.width,
+                                             child.centerY * originalSize.height / image.height))
                     }
                     mask.children = []
                     canvas.repaint()

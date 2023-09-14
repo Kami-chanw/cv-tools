@@ -8,7 +8,6 @@ import sys
 
 
 class AbstractWidget(QObject):
-
     @QEnum
     class WidgetType(Enum):
         ComboBox, LineEdit, SpinBox, Slider, Selector, CheckBox = range(6)
@@ -27,6 +26,24 @@ class AbstractWidget(QObject):
 
     titleChanged = Signal()
     title = Property(str, lambda self: self._title, notify=titleChanged)
+    @classmethod
+    def load(cls, data):
+        pass
+        '''
+        widget = cls(data['title'], data['informativeText'], data['type'])
+        widget._currentValue = data['currentValue']
+        widget._defaultValue = data['defaultValue']
+        return widget
+        '''
+
+    def toPlainData(self):
+        data = dict()
+        data['title'] = self._title
+        data['informativeText'] = self._informativeText
+        data['currentValue'] = self._currentValue
+        data['defaultValue'] = self._defaultValue
+        data['type'] = self._type
+        return data
 
     @title.setter
     def title(self, title):
@@ -85,6 +102,31 @@ class ComboBox(AbstractWidget):
                          AbstractWidget.WidgetType.ComboBox, parent)
         self._labelModel = QStandardItemModel(self)
 
+    @classmethod
+    def load(cls, data):
+        print(data)
+        widget = cls(data['title'], data['informativeText'])
+        widget._currentValue = data['currentValue']
+        widget._defaultValue = data['defaultValue']
+        for item in data['labels']:
+            # print(item)
+            widget.append(item[0], item[1])
+        # print(widget._labelModel.item(0, 0).data(Qt.DisplayRole))
+        return widget
+
+    def toPlainData(self):
+        data = AbstractWidget.toPlainData(self)
+        labels = []
+        for i in range(self._labelModel.rowCount()):
+            item = self._labelModel.item(i, 0)
+            # change item to the type can be pickled
+            label = item.data(Qt.DisplayRole)
+            tip = item.data(Qt.ToolTipRole)
+            print([label, tip])
+            labels.append([label, tip])
+        data['labels'] = labels
+        return data
+
     def append(self, label, tip=None):
         self.insert(self._labelModel.rowCount(), label, tip)
 
@@ -125,6 +167,22 @@ class Slider(AbstractWidget):
 
     minimumChanged = Signal()
     minimum = Property(float, lambda self: self._minimum, notify=minimumChanged)
+    
+    @classmethod
+    def load(cls, data):
+        widget = cls(data['title'], data['informativeText'])
+        widget._minimum = data['minimum']
+        widget._maximum = data['maximum']
+        widget.stepSize = data['stepSize']
+        return widget
+
+    def toPlainData(self):
+        data = AbstractWidget.toPlainData(self)
+        data['minimum'] = self._minimum
+        data['maximum'] = self._maximum
+        data['stepSize'] = self._stepSize
+        return data
+      
     @minimum.setter
     def minimum(self, minimum):
         if self._minimum != minimum:
@@ -161,6 +219,23 @@ class LineEdit(AbstractWidget):
         self._maximumLength = -1
         self._validator = None
 
+    @classmethod
+    def load(cls, data):
+        widget = cls(data['title'], data['informativeText'])
+        widget._placeholderText = data['placeholderText']
+        widget._maximumLength = data['maximumLength']
+        # to load self._validator
+        # TODO
+        return widget
+
+    def toPlainData(self):
+        data = AbstractWidget.toPlainData(self)
+        data['placeholderText'] = self._placeholderText
+        data['maximumLength'] = self._maximumLength
+        # to save self._validator
+        # TODO
+        return data
+
     placeholderTextChanged = Signal()
     placeholderText = Property(str, lambda self: self._placeholderText, notify=placeholderTextChanged)
     @placeholderText.setter
@@ -194,7 +269,7 @@ class CheckBox(AbstractWidget):
                  informativeText=None,
                  parent: QObject | None = None) -> None:
         super().__init__(title, informativeText,
-                         AbstractWidget.WidgetType.CheckBox, parent)
+        AbstractWidget.WidgetType.CheckBox, parent)
         self._text = None
 
         textChanged = Signal()
@@ -207,6 +282,9 @@ class CheckBox(AbstractWidget):
 
 
 class Selector(AbstractWidget):
+    @QEnum
+    class SelectorType(Enum):
+        Rectangular, Polygen = range(2)
 
     @QEnum
     class SelectorType(Enum):
@@ -233,6 +311,7 @@ class Selector(AbstractWidget):
         if self._selectorType == Selector.SelectorType.Rectangular:
             return 4
         return self._pointCount
+
     @pointCount.setter
     def pointCount(self, count):
         if self._selectorType == Selector.SelectorType.Rectangular:
@@ -240,4 +319,3 @@ class Selector(AbstractWidget):
         if self._pointCount != count:
             self._pointCount = count
             self.pointCountChanged.emit()
-

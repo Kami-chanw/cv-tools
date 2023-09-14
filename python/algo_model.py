@@ -4,7 +4,8 @@ QML_IMPORT_NAME = "CvTools"
 QML_IMPORT_MAJOR_VERSION = 1
 
 from typing import Dict, Optional, Union
-from PySide6.QtCore import QAbstractItemModel, QObject, Property, Signal, QModelIndex, QEnum, Qt, QByteArray, Slot, QAbstractListModel
+from PySide6.QtCore import QAbstractItemModel, QObject, Property, Signal, QModelIndex, QEnum, Qt, QByteArray, Slot, \
+    QAbstractListModel
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 from PySide6.QtQml import QmlElement
 from enum import Enum
@@ -61,6 +62,35 @@ class Algorithm(AbstractAlgorithm):
         super().__init__(parent)
         self._widgets = QStandardItemModel(self)
         self._enabled = True
+
+    @classmethod
+    def load(cls, data: dict):
+        model = cls()
+        for i in range(len(data['types'])):
+            _type = str(data['types'][i]).split('.')[1]
+            class_to_call = globals()[_type]
+            item = class_to_call.load(data['widgets'][i])
+            # Set the (i,0) item here to the variable item
+            temp = QStandardItem()
+            temp.setData(item, Qt.DisplayRole)
+            model._widgets.setItem(i, 0, temp)
+        model._enabled = data['enabled']
+        return model
+
+    def toPlainData(self):
+        widgets = []
+        types = []
+        for i in range(self._widgets.rowCount()):
+            item = self._widgets.item(i, 0).data(Qt.UserRole)
+            print(item._type)
+            if item is not None:
+                widgets.append(item.toPlainData())
+                types.append(item._type)
+            else:
+                widgets.append(None)
+                types.append(None)
+        return {'title': self._title, 'informativeTitle': self._informativeTitle, 'widgets': widgets,
+                'enabled': self._enabled, 'types': types}
 
     def apply(self, image):
         return None
@@ -129,7 +159,7 @@ class AlgorithmTreeModel(QAbstractItemModel):
             )  # parent_item here must be AlgorithmGroup
             if parent_item.algorithms[index.row()] != value:
                 if not type(parent_item.algorithms[
-                        index.row()]) is AbstractAlgorithm:
+                                index.row()]) is AbstractAlgorithm:
                     warnings.warn(
                         f"Index at {index} already has an item, setData() will override current item.",
                         category=UserWarning)
@@ -210,7 +240,6 @@ class AlgorithmTreeModel(QAbstractItemModel):
         return self._rootItem
 
 
-@QmlElement
 class AlgorithmListModel(QAbstractListModel):
     """
     This model is used to store current algorithms, which means it will be changed in qml frontend and listed in tool box.
@@ -224,6 +253,20 @@ class AlgorithmListModel(QAbstractListModel):
         self._algorithms = []
         self.rowsMoved.connect(self.updateRequired)
         self.rowsRemoved.connect(self.updateRequired)
+
+    @classmethod
+    def load(cls, data: dict):
+        model = cls()
+        for algo in data['algorithms']:
+            model._algorithms.append(Algorithm.load(algo))
+        return model
+
+    def toPlainData(self):
+        algorithms = []
+        for algo in self._algorithms:
+            algorithms.append(algo.toPlainData())
+        print(algorithms)
+        return {'algorithms': algorithms}
 
     def rowCount(self, parent: QModelIndex = None) -> int:
         return len(self._algorithms)
@@ -251,7 +294,7 @@ class AlgorithmListModel(QAbstractListModel):
             else:
                 if not value is None:
                     if not type(self._algorithms[
-                            index.row()]) is AbstractAlgorithm:
+                                    index.row()]) is AbstractAlgorithm:
                         warnings.warn(
                             f"Index at {index} already has an item, setData() will override current item.",
                             category=UserWarning)

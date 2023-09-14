@@ -6,6 +6,7 @@ import "./components"
 Flickable {
     id: control
     property alias model: repeater.model
+    required property var imageMouseArea
     HoverHandler {
         id: hoverHandler
     }
@@ -45,6 +46,15 @@ Flickable {
                     case Enums.WidgetType.LineEdit:
                         source = "./algo_widgets/AlgoLineEdit.qml"
                         break
+                    case Enums.WidgetType.CheckBox:
+                        source = "./algo_widgets/AlgoCheckBox.qml"
+                        break
+                    case Enums.WidgetType.Selector:
+                        loader.setSource("./algo_widgets/AlgoSelector.qml", {
+                                             "widget": currentWidget,
+                                             "imageMouseArea": control.imageMouseArea
+                                         })
+                        return
                     default:
                         return
                     }

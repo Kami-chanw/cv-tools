@@ -1,15 +1,16 @@
 ﻿from typing import Optional
 from PySide6.QtCore import QObject, Property, Signal, QEnum, Qt, Slot
 from PySide6.QtGui import QValidator, QStandardItem, QStandardItemModel
+from PySide6.QtQml import QJSValue
+from python.validator import *
 from enum import Enum
+import sys
 
 
 class AbstractWidget(QObject):
     @QEnum
     class WidgetType(Enum):
-        ComboBox, LineEdit, SpinBox, Slider, Selector = range(5)
-
-    dataChanged = Signal(str)
+        ComboBox, LineEdit, SpinBox, Slider, Selector, CheckBox = range(6)
 
     def __init__(self,
                  title,
@@ -23,6 +24,8 @@ class AbstractWidget(QObject):
         self._defaultValue = None
         self._type = type
 
+    titleChanged = Signal()
+    title = Property(str, lambda self: self._title, notify=titleChanged)
     @classmethod
     def load(cls, data):
         pass
@@ -42,29 +45,32 @@ class AbstractWidget(QObject):
         data['type'] = self._type
         return data
 
-    title = Property(str, lambda self: self._title, notify=dataChanged)
-
     @title.setter
     def title(self, title):
         if self._title != title:
             self._title = title
-            self.dataChanged.emit("title")
+            self.titleChanged.emit()
 
+    informativeTextChanged = Signal()
     informativeText = Property(str,
                                lambda self: self._informativeText,
-                               notify=dataChanged)
+                               notify=informativeTextChanged)
 
     @informativeText.setter
     def informativeText(self, informativeText):
         if self._informativeText != informativeText:
             self._informativeText = informativeText
-            self.dataChanged.emit("informativeText")
+            self.informativeTextChanged.emit()
 
     type = Property(int, lambda self: self._type.value, constant=True)
 
-    @Property("QVariant", notify=dataChanged)
+    currentValueChanged = Signal()
+
+    @Property("QVariant", notify=currentValueChanged)
     def currentValue(self):
-        if self._currentValue == None:
+        if type(self._currentValue) is QJSValue:
+            return self._currentValue.toVariant()
+        if self._currentValue is None:
             self._currentValue = self._defaultValue
         return self._currentValue
 
@@ -72,17 +78,18 @@ class AbstractWidget(QObject):
     def currentValue(self, currentValue):
         if self._currentValue != currentValue:
             self._currentValue = currentValue
-            self.dataChanged.emit("currentValue")
+            self.currentValueChanged.emit()
 
+    defaultValueChanged = Signal()
     defaultValue = Property("QVariant",
                             lambda self: self._defaultValue,
-                            notify=dataChanged)
+                            notify=defaultValueChanged)
 
     @defaultValue.setter
     def defaultValue(self, defaultValue):
         if self._defaultValue != defaultValue:
             self._defaultValue = defaultValue
-            self.dataChanged.emit("defaultValue")
+            self.defaultValueChanged.emit()
 
 
 class ComboBox(AbstractWidget):
@@ -158,6 +165,9 @@ class Slider(AbstractWidget):
         self._stepSize = 0.0
         self._maximum = 0.0
 
+    minimumChanged = Signal()
+    minimum = Property(float, lambda self: self._minimum, notify=minimumChanged)
+    
     @classmethod
     def load(cls, data):
         widget = cls(data['title'], data['informativeText'])
@@ -172,32 +182,29 @@ class Slider(AbstractWidget):
         data['maximum'] = self._maximum
         data['stepSize'] = self._stepSize
         return data
-
-    minimum = Property(float, lambda self: self._minimum)
-
+      
     @minimum.setter
     def minimum(self, minimum):
         if self._minimum != minimum:
             self._minimum = minimum
-            self.dataChanged.emit("minimum")
+            self.minimumChanged.emit()
 
-    stepSize = Property(float, lambda self: self._step)
-
+    stepSizeChanged = Signal()
+    stepSize = Property(float, lambda self: self._stepSize, notify=stepSizeChanged)
     @stepSize.setter
     def stepSize(self, step):
         if self._stepSize != step:
             self._stepSize = step
-            self.dataChanged.emit("step")
+            self.stepSizeChanged.emit()
 
-    maximum = Property(float,
-                       lambda self: self._maximum,
-                       notify=AbstractWidget.dataChanged)
-
+    maximumChanged = Signal()
+    maximum = Property(float, lambda self: self._maximum, notify=maximumChanged)
     @maximum.setter
     def maximum(self, maximum):
         if self._maximum != maximum:
             self._maximum = maximum
-            self.dataChanged.emit("maximum")
+            self.maximumChanged.emit()
+
 
 
 class LineEdit(AbstractWidget):
@@ -209,8 +216,8 @@ class LineEdit(AbstractWidget):
         super().__init__(title, informativeText,
                          AbstractWidget.WidgetType.LineEdit, parent)
         self._placeholderText = ""
-        self._maximumLength = 0
-        self._validator = QValidator()
+        self._maximumLength = -1
+        self._validator = None
 
     @classmethod
     def load(cls, data):
@@ -229,78 +236,49 @@ class LineEdit(AbstractWidget):
         # TODO
         return data
 
-    placeholderText = Property(str,
-                               lambda self: self._placeholderText,
-                               notify=AbstractWidget.dataChanged)
-
+    placeholderTextChanged = Signal()
+    placeholderText = Property(str, lambda self: self._placeholderText, notify=placeholderTextChanged)
     @placeholderText.setter
     def placeholderText(self, placeholderText):
         if self._placeholderText != placeholderText:
             self._placeholderText = placeholderText
-            self.dataChanged.emit("placeholderText")
+            self.placeholderTextChanged.emit()
 
-    maximumLength = Property(int,
-                             lambda self: self._maximumLength,
-                             notify=AbstractWidget.dataChanged)
-
+    maximumLengthChanged = Signal()
+    maximumLength = Property(int, lambda self: self._maximumLength, notify=maximumLengthChanged)
     @maximumLength.setter
     def maximumLength(self, maximumLength):
         if self._maximumLength != maximumLength:
             self._maximumLength = maximumLength
-            self.dataChanged.emit("maximumLength")
+            self.maximumLengthChanged.emit()
 
-    validator = Property(QValidator,
-                         lambda self: self._validator,
-                         notify=AbstractWidget.dataChanged)
-
+    validatorChanged = Signal()
+    validator = Property(QObject, lambda self: self._validator, notify=validatorChanged)
     @validator.setter
     def validator(self, validator):
         if self._validator != validator:
             self._validator = validator
-            self.dataChanged.emit("validator")
+            self.validatorChanged.emit()
 
 
-class SpinBox(AbstractWidget):
+
+class CheckBox(AbstractWidget):
 
     def __init__(self,
                  title,
                  informativeText=None,
                  parent: QObject | None = None) -> None:
         super().__init__(title, informativeText,
-                         AbstractWidget.WidgetType.SpinBox, parent)
-        self._range = ()
-        self._precision = 0
+        AbstractWidget.WidgetType.CheckBox, parent)
+        self._text = None
 
-    @classmethod
-    def load(cls, data):
-        widget = cls(data['title'], data['informativeText'])
-        widget._range = data['range']
-        widget._precision = data['precision']
-        return widget
-
-    def toPlainData(self):
-        data = AbstractWidget.toPlainData(self)
-        data['range'] = self._range
-        data['precision'] = self._precision
-        return data
-
-    range = Property(tuple, lambda self: self._range)
-
-    @range.setter
-    def range(self, range):
-        if self._range != range:
-            self._range = range
-            self.dataChanged.emit("range")
-
-    precision = Property(float,
-                         lambda self: self._precision,
-                         notify=AbstractWidget.dataChanged)
-
-    @precision.setter
-    def precision(self, precision):
-        if self._precision != precision:
-            self._precision = precision
-            self.dataChanged.emit("precision")
+        textChanged = Signal()
+        text = Property(str, lambda self: self._text, notify=textChanged)
+        @text.setter
+        def text(self, text):
+            if self._text != text:
+                self._text = text
+                self.textChanged.emit()
 
 
 class Selector(AbstractWidget):
@@ -308,19 +286,27 @@ class Selector(AbstractWidget):
     class SelectorType(Enum):
         Rectangular, Polygen = range(2)
 
+    @QEnum
+    class SelectorType(Enum):
+        Rectangular, Polygen = range(2)
+
     def __init__(self,
+                 selectorType: SelectorType,
                  title,
                  informativeText=None,
                  parent: QObject | None = None) -> None:
         super().__init__(title, informativeText,
                          AbstractWidget.WidgetType.Selector, parent)
-        self._selectorType = None
+        self._selectorType = selectorType
         self._pointCount = None
         self._defaultValue = []
 
-    selectorType = Property(int, lambda self: self._selectorType.value, constant=True)
+    selectorType = Property(int,
+                            lambda self: self._selectorType.value,
+                            constant=True)
 
-    @Property(int, notify=AbstractWidget.dataChanged)
+    pointCountChanged = Signal()
+    @Property(int, notify=pointCountChanged)
     def pointCount(self):
         if self._selectorType == Selector.SelectorType.Rectangular:
             return 4
@@ -332,4 +318,4 @@ class Selector(AbstractWidget):
             return
         if self._pointCount != count:
             self._pointCount = count
-            self.dataChanged.emit("pointCount")
+            self.pointCountChanged.emit()

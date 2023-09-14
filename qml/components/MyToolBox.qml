@@ -11,6 +11,7 @@ ToolBox {
         color: "#cccccc"
         opacity: 0.15
     }
+    property var imageMouseArea
     property alias hovered: hoverHandler.hovered
     HoverHandler {
         id: hoverHandler
@@ -20,7 +21,8 @@ ToolBox {
                         return {
                             "source": Qt.resolvedUrl(".") + "../AlgoListItem.qml",
                             "properties": {
-                                "model": control.model.get(index).widgets
+                                "model": control.model.get(index).widgets,
+                                "imageMouseArea": control.imageMouseArea
                             }
                         }
                     }

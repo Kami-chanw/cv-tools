@@ -22,6 +22,8 @@ import pickle
 @QmlElement
 class Enums(QObject):
     WidgetType = QEnum(AbstractWidget.WidgetType)
+    SelectorType = QEnum(Selector.SelectorType)
+    Validator = QEnum(QValidator.State)
 
 
 @QmlElement
@@ -29,14 +31,16 @@ class SessionData(QObject):
     nameChanged = Signal()
     frameChanged = Signal(int)
     isClonedViewChanged = Signal()
+    errorStringChanged = Signal()
 
     def __init__(self, path: WindowsPath, parent=None) -> None:
         super().__init__(parent)
 
         self._isClonedView = False
+        self._errorString = None
         self._algoModel = [AlgorithmListModel(self), AlgorithmListModel(self)]
-        self._algoModel[0].updateRequired.connect(lambda: self.applyAlgorithms(0))
-        self._algoModel[1].updateRequired.connect(lambda: self.applyAlgorithms(1))
+        self._algoModel[0].updateRequired.connect(lambda :self.applyAlgorithms(0))
+        # self._algoModel[1].updateRequired.connect(lambda :self.applyAlgorithms(1))
 
         self._sessionPath = None
 
@@ -124,9 +128,13 @@ class SessionData(QObject):
         currentFrame = self._qt2cv(self._origin_image)
         for algo in self._algoModel[index].algorithms:
             if algo.enabled:
-                currentFrame = algo.apply(currentFrame)
-                if currentFrame is None:
-                    raise ValueError(f"Faild to apply alogorithm {algo.title}")
+                try:
+                    currentFrame = algo.apply(currentFrame)
+                    if currentFrame is None:
+                        raise ValueError(f"Faild to apply alogorithm {algo.title}")
+                except Exception as e:
+                    self.errorString = str(e)
+                    return
         self.setFrame(index, self._cv2qt(currentFrame))
 
     fileName = Property(str, lambda self: self._filePath.name)
@@ -137,12 +145,20 @@ class SessionData(QObject):
                             lambda self: self._isClonedView,
                             notify=isClonedViewChanged)
     sessionPath = Property(str, lambda self: self._sessionPath, constant=True)
+    errorString = Property(str, lambda self:self._errorString, notify=errorStringChanged)
 
     @isClonedView.setter
     def isClonedView(self, value):
         if self._isClonedView != value:
             self._isClonedView = value
             self.isClonedViewChanged.emit()
+    
+    @errorString.setter
+    def errorString(self, errorString):
+        if self._errorString != errorString:
+            self._errorString = errorString
+            self.errorStringChanged.emit()
+
 
 
 @QmlElement

@@ -62,7 +62,7 @@ ComboBox {
     }
 
     background: Rectangle {
-        implicitHeight: 22
+        implicitHeight: 27
         implicitWidth: 180
         color: "#313131"
         radius: 3

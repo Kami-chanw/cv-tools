@@ -103,15 +103,12 @@ class Algorithm(AbstractAlgorithm):
 
     def addWidget(self, widget: AbstractWidget):
 
-        def propagate(name):
-            if name == "currentValue":
-                self.currentValueChanged.emit(
-                    self.indexFromWidget(widget))
-
         item = QStandardItem()
         item.setData(widget, Qt.UserRole)
         item.setData(widget.title, Qt.DisplayRole)
-        widget.dataChanged.connect(propagate)
+        widget.currentValueChanged.connect(
+            lambda: self.currentValueChanged.emit(
+                self.indexFromWidget(widget)))
         self._widgets.appendRow(item)
 
     widgets = Property(QObject, lambda self: self._widgets, constant=True)

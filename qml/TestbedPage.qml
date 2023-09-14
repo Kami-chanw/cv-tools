@@ -7,8 +7,7 @@ import "./components"
 Item {
     id: root
     property SessionData sessionData
-
-    signal clonedViewParamChanged(int algoIndex, var params)
+    property alias imageMouseArea: imageMouseArea
 
     Connections {
         target: imageProvider
@@ -47,6 +46,193 @@ Item {
                 visible: root.sessionData?.isClonedView ?? false
                 fillMode: Image.PreserveAspectFit
                 anchors.fill: parent
+            }
+            Rectangle {
+                id: mask
+                color: Qt.rgba(20 / 255, 20 / 255, 20 / 255, 0.6)
+                anchors.fill: image
+                visible: false
+            }
+
+            Component {
+                id: dot
+                Rectangle {
+                    id: path
+                    radius: 3
+                    width: radius * 2
+                    height: width
+                    required property int centerX
+                    required property int centerY
+                    property alias dragEnabled: dragHandler.enabled
+                    x: centerX - radius
+                    y: centerY - radius
+                    onXChanged: {
+                        centerX = x + radius
+                    }
+                    onYChanged: {
+                        centerY = y + radius
+                    }
+
+                    color: "#0078D4"
+                    Drag.source: path
+                    Drag.active: dragHandler.active
+                    DragHandler {
+                        id: dragHandler
+                        cursorShape: Qt.OpenHandCursor
+                    }
+                }
+            }
+
+            Canvas {
+                id: canvas
+                anchors.fill: parent
+                visible: false
+                contextType: "2d"
+                onPaint: {
+                    if (mask.children.length === 0)
+                        return
+                    let ctx = context
+                    ctx.strokeStyle = "#0078D4"
+                    ctx.fillStyle = "#449CDCFE"
+                    ctx.beginPath()
+                    ctx.moveTo(mask.children[0].centerX, mask.children[0].centerY)
+                    for (var i = 1; i < mask.children.length; ++i)
+                        ctx.lineTo(mask.children[i].centerX, mask.children[i].centerY)
+                    ctx.closePath()
+                    ctx.stroke()
+                    ctx.fill()
+                }
+
+                function repaint() {
+                    context.clearRect(0, 0, canvas.width, canvas.height)
+                    requestPaint()
+                }
+            }
+            MouseArea {
+                id: imageMouseArea
+                anchors.fill: image
+                hoverEnabled: true
+                acceptedButtons: Qt.LeftButton
+
+                // the following properties is prepared for AlgoWidgets
+                property int selectorType: 0
+                property int pointCount: 4
+                property bool isSelecting: false
+                function startSelection() {
+                    isSelecting = true
+                    mask.visible = true
+                    canvas.visible = true
+                }
+
+                function finishSelection() {
+                    isSelecting = false
+                    let result = []
+                    for (var child of mask.children) {
+                        result.push(Qt.point(child.centerX, child.centerY))
+                    }
+                    mask.children = []
+                    canvas.repaint()
+                    mask.visible = false
+                    canvas.visible = false
+                    return result
+                }
+
+                onClicked: {
+                    if (!isSelecting)
+                        return
+                    switch (selectorType) {
+                    case Enums.SelectorType.Polygen:
+                        let length = mask.data.length
+                        let d = dot.createObject(mask, {
+                                                     "centerX": mouseX,
+                                                     "centerY": mouseY,
+                                                     "dragEnabled": Qt.binding(() => !isSelecting)
+                                                 })
+                        d.xChanged.connect(canvas.repaint)
+                        d.yChanged.connect(canvas.repaint)
+                        mask.data.push(d)
+                        if (mask.data.length === pointCount)
+                            isSelecting = false
+
+                        break
+                    case Enums.SelectorType.Rectangular:
+                    }
+
+                    canvas.repaint()
+                }
+
+                onPressed: {
+                    if (!isSelecting)
+                        return
+                    switch (selectorType) {
+                    case Enums.SelectorType.Polygen:
+                        break
+                    case Enums.SelectorType.Rectangular:
+                        for (var i = 0; i < 4; ++i) {
+                            let d = dot.createObject(mask, {
+                                                         "centerX": mouseX,
+                                                         "centerY": mouseY,
+                                                         "dragEnabled": Qt.binding(
+                                                                            () => !isSelecting)
+                                                     })
+                            mask.children.push(d)
+                        }
+                        function connectXChanged(from, to) {
+                            mask.children[from].xChanged.connect(() => {
+                                                                     if (mask.children[to].x
+                                                                         !== mask.children[from].x) {
+                                                                         mask.children[to].x = mask.children[from].x
+                                                                         canvas.repaint()
+                                                                     }
+                                                                 })
+                        }
+                        function connectYChanged(from, to) {
+                            mask.children[from].yChanged.connect(() => {
+                                                                     if (mask.children[to].y
+                                                                         !== mask.children[from].y) {
+                                                                         mask.children[to].y = mask.children[from].y
+                                                                         canvas.repaint()
+                                                                     }
+                                                                 })
+                        }
+                        connectXChanged(0, 3)
+                        connectYChanged(0, 1)
+                        connectXChanged(1, 2)
+                        connectYChanged(1, 0)
+                        connectXChanged(2, 1)
+                        connectYChanged(2, 3)
+                        connectXChanged(3, 0)
+                        connectYChanged(3, 2)
+                    }
+
+                    canvas.repaint()
+                }
+
+                onPositionChanged: {
+                    if (!isSelecting)
+                        return
+                    switch (selectorType) {
+                    case Enums.SelectorType.Polygen:
+                        break
+                    case Enums.SelectorType.Rectangular:
+                        if (mask.children.length === 0)
+                            return
+                        mask.children[2].centerX = mouseX
+                        mask.children[2].centerY = mouseY
+                    }
+                    canvas.repaint()
+                }
+
+                onReleased: {
+                    if (!isSelecting)
+                        return
+                    switch (selectorType) {
+                    case Enums.SelectorType.Polygen:
+                        break
+                    case Enums.SelectorType.Rectangular:
+                        isSelecting = false
+                    }
+                }
             }
 
             MySplitHandle {

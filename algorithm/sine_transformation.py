@@ -10,6 +10,8 @@ class Sine_transformation(Algorithm):
 
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
+        self.title = 'Sine transformation'
+        self.informativeText = 'Add a sine transformation effect to your image.'
         self.x_scale = Slider('x_scale', 'Transformation magnification in x direction')
         self.x_scale.maximum, self.x_scale.minimum, self.x_scale.stepSize = 200, 1, 1
         self.y_scale = Slider('y_scale', 'Transformation magnification in y direction')

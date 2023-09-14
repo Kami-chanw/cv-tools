@@ -64,8 +64,8 @@ class Algorithm(AbstractAlgorithm):
 
     def apply(self, image):
         return None
-    
-    def indexFromWidget(self, widget :AbstractWidget):
+
+    def indexFromWidget(self, widget: AbstractWidget):
         for row in range(self._widgets.rowCount()):
             if self._widgets.item(row, 0).data(Qt.DisplayRole) == widget.title:
                 return row
@@ -73,15 +73,12 @@ class Algorithm(AbstractAlgorithm):
 
     def addWidget(self, widget: AbstractWidget):
 
-        def propagate(name):
-            if name == "currentValue":
-                self.currentValueChanged.emit(
-                    self.indexFromWidget(widget))
-
         item = QStandardItem()
         item.setData(widget, Qt.UserRole)
         item.setData(widget.title, Qt.DisplayRole)
-        widget.dataChanged.connect(propagate)
+        widget.currentValueChanged.connect(
+            lambda: self.currentValueChanged.emit(
+                self.indexFromWidget(widget)))
         self._widgets.appendRow(item)
 
     widgets = Property(QObject, lambda self: self._widgets, constant=True)
@@ -338,7 +335,6 @@ class AlgorithmListModel(QAbstractListModel):
     def append(self, algo: Algorithm):
         self.insertRow(self.count)
         self.setData(self.index(self.count - 1, 0), algo, Qt.UserRole)
-        
 
     @Slot(int, int)
     def remove(self, index, count):

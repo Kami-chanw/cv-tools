@@ -13,7 +13,8 @@ from KmcUI.PyKmc.models import TreeModel, TreeNode
 from resources import *
 from python.image_loader import *
 from python.bridge import *
-from algorithm import algorithmTreeModel, cvt_color
+from python.validator import IntValidator
+from algorithm import algorithmTreeModel
 from python.algo_widgets import *
 
 
@@ -23,11 +24,12 @@ if __name__ == "__main__":
     QGuiApplication.setOrganizationDomain("seu.cvtools")
     app.setWindowIcon(QIcon("assets/logo.svg"))
     imageProvider = ImageProvider()
-    sessionData = SessionData(Path(r"C:\Users\ASUS\Pictures\Saved Pictures\418f33056a268843700fe3d605d5a2e84ff0f3ed.jpg@1320w_1036h.jpg"))
-    sessionData.algoModel[0].append(algorithmTreeModel.data(algorithmTreeModel.index(0,0,algorithmTreeModel.index(0,0)), Qt.UserRole))
+    widget = LineEdit("Test")
+    widget.defaultValue = 2
+    widget.validator = IntValidator(0,255)
     engine = QQmlApplicationEngine()
     engine.addImageProvider(imageProvider.providerId(), imageProvider)
-    engine.rootContext().setContextProperty("widget",sessionData.algoModel[0].get(0).widgets.item(0).data(Qt.UserRole))
+    engine.rootContext().setContextProperty("widget", widget)
     engine.rootContext().setContextProperty("imageProvider",imageProvider)
     engine.rootContext().setContextProperty("algorithmTreeModel", algorithmTreeModel)
     qml_file = QML_PATH / "Test.qml"

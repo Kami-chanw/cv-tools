@@ -25,7 +25,9 @@
         "qml/components/MyIconButton.qml",
         "qml/components/MyToolTip.qml",
         "qml/algo_widgets/AlgoSlider.qml",
-        "qml/algo_widgets/AlgoLineEdit.qml"
+        "qml/algo_widgets/AlgoLineEdit.qml",
+        "qml/algo_widgets/AlgoCheckBox.qml",
+        "qml/algo_widgets/AlgoSelector.qml"
     ],
     "qmlImportPaths": [
         "3rdparty/KmcUI/src/imports"

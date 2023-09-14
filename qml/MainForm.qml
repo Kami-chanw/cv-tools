@@ -93,6 +93,15 @@ ShadowWindow {
         }
     }
 
+    Connections {
+        target: root.sessionData
+        enabled: !!root.sessionData
+        function onErrorStringChanged() {
+            messageDialog.text = root.sessionData.errorString
+            messageDialog.open()
+        }
+    }
+
     Component {
         id: algoGroup
         MyMenu {}
@@ -160,7 +169,7 @@ ShadowWindow {
     function readSessionData(path) {
         root.sessionData = bridge.parseFile(path, imageProvider)
         if (!sessionData) {
-            messageDialog.text = root.sessionData.errorString
+            messageDialog.text = bridge.errorString
             messageDialog.open()
         }
     }
@@ -530,6 +539,7 @@ ShadowWindow {
                     MyToolBox {
                         id: algoList
                         model: sessionData?.algoModel[0]
+                        imageMouseArea: testbedPageLoader.item?.imageMouseArea
                     }
                 }
             }
@@ -562,12 +572,6 @@ ShadowWindow {
                 Loader {
                     id: testbedPageLoader
                     source: "TestbedPage.qml"
-                    onLoaded: {
-                        testbedPageLoader.item.clonedViewParamChanged.connect(
-                                    (algoIndex, params) => {
-                                        root.algoParamChanged(1, algoIndex, params)
-                                    })
-                    }
                 }
             }
         }

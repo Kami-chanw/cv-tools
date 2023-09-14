@@ -144,6 +144,7 @@ class SessionData(QObject):
                             notify=isClonedViewChanged)
     sessionPath = Property(str, lambda self: self._sessionPath, constant=True)
     errorString = Property(str, lambda self:self._errorString, notify=errorStringChanged)
+    imageSize = Property(QSize, lambda self: self._origin_image.size(), constant=True)
 
     @isClonedView.setter
     def isClonedView(self, value):

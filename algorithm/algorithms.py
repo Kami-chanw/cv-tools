@@ -124,7 +124,7 @@ class Threshold(Algorithm):
         self.combobox.append("To Zero Inv", "")
         self.combobox.append("None")
         self.combobox.defaultValue = "None"
-        self.addWidget(self.combobox)
+        
 
         self.lineEdit = LineEdit("Thresh", "0-255")
         self.lineEdit.defaultValue = 0
@@ -132,6 +132,7 @@ class Threshold(Algorithm):
         self.lineEdit.maximumLength = 3
 
         self.addWidget(self.lineEdit)
+        self.addWidget(self.combobox)
 
     def apply(self, img):  # 注意图片的名称
 

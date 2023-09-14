@@ -5,5 +5,5 @@ from pathlib import Path
 from PySide6.QtGui import QIntValidator, QDoubleValidator
 from python.validator import *
 
-validator = IntValidator(10, 255)
-print(QIntValidator.State.Intermediate.value)
+validator = IntValidator(0, 255, 0)
+print(validator.validate("-3", 3))

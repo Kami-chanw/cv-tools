@@ -49,10 +49,10 @@ class IntValidator(QIntValidator, ValidatorExtend):
 
     @Slot(str, int, result=QValidator.State)
     def validate(self, input: str, pos: int):
-        if not input.isdigit():
+        if not (input.isdigit() or (input.startswith('-') and input[1:].isdigit())):
             self.errorString = "The input value must be an integer."
             return QValidator.State.Invalid
-        if super().validate(input, pos)[0] == QValidator.State.Invalid:
+        if super().validate(input, pos)[0] != QValidator.State.Acceptable:
             self.errorString = f"The input value must be in range {self.bottom()}~{self.top()}."
         return super().validate(input, pos)[0]
 
@@ -83,10 +83,10 @@ class DoubleValidator(QDoubleValidator, ValidatorExtend):
 
     @Slot(str, int, result=QValidator.State)
     def validate(self, input: str, pos: int):
-        if not input.isdecimal():
+        if not (input.isdecimal() or (input.startswith('-') and input[1:].isdecimal())):
             self.errorString = "The input value must be a decimal."
             return QValidator.State.Invalid
-        if super().validate(input, pos) == QValidator.State.Invalid:
+        if super().validate(input, pos)[0] != QValidator.State.Acceptable:
             self.errorString = f"The input value must be in range {self.bottom()}~{self.top()}."
         return super().validate(input, pos)[0]
 

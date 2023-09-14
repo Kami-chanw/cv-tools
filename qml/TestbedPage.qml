@@ -127,7 +127,7 @@ Item {
                 function finishSelection() {
                     isSelecting = false
                     let result = []
-                    const originalSize = image.sourceSize
+                    const originalSize = sessionData.imageSize
                     for (var child of mask.children) {
                         result.push(Qt.point(child.centerX * originalSize.width / image.width,
                                              child.centerY * originalSize.height / image.height))

@@ -15,6 +15,10 @@ TextField {
     required property var widget
     placeholderText: widget?.placeholderText ?? ""
     maximumLength: widget?.maximumLength ?? -1
+    Component.onCompleted: {
+        if (widget.defaultValue !== undefined)
+            fullText = widget.defaultValue
+    }
 
     selectByMouse: true
     background: Rectangle {
@@ -26,32 +30,29 @@ TextField {
     }
 
     text: activeFocus ? fullText : metrics.elidedText
-    Loader {
+    Popup {
         id: errorRect
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.bottom
-        anchors.topMargin: -1
-        active: !!control.widget.validator
-        sourceComponent: Rectangle {
+        x: control.x
+        y: control.y + control.height - 1
+        padding: 0
+        margins: 0
+        visible: false
+        width: control.width
+        height: errorText.contentHeight + errorText.topPadding + errorText.bottomPadding
+        background: Rectangle {
             border.color: "#BE1100"
-            height: errorText.contentHeight + errorText.topPadding + errorText.bottomPadding
-            visible: false
             color: "#5A1D1D"
-            Text {
-                id: errorText
-                width: errorRect.width
-                topPadding: 6
-                bottomPadding: topPadding
-                leftPadding: control.leftPadding
-                rightPadding: control.rightPadding
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.left: parent.left
-                font: control.font
-                color: "#c7c7c7"
-                text: widget?.validator.errorString ?? ""
-                wrapMode: Text.Wrap
-            }
+        }
+        contentItem: Text {
+            id: errorText
+            topPadding: 6
+            bottomPadding: topPadding
+            leftPadding: control.leftPadding
+            rightPadding: control.rightPadding
+            font: control.font
+            color: "#c7c7c7"
+            text: widget?.validator.errorString ?? ""
+            wrapMode: Text.WordWrap
         }
     }
 
@@ -61,11 +62,11 @@ TextField {
                 control.fullText = control.text
             errorRect.visible = Number(widget.validator.validate(
                                            control.fullText,
-                                           control.cursorPosition)) === Enums.State.Invalid
+                                           control.cursorPosition)) !== Enums.State.Acceptable
         }
         function onEditingFinished() {
-            if (Number(widget.validator.validate(control.fullText,
-                                                 control.cursorPosition)) === Enums.State.Invalid)
+            if (Number(widget.validator.validate(
+                           control.fullText, control.cursorPosition)) !== Enums.State.Acceptable)
                 control.fullText = widget.validator.fixup(control.fullText)
             widget.currentValue = control.fullText
         }

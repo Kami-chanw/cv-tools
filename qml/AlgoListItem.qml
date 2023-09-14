@@ -62,7 +62,7 @@ Flickable {
                                          "widget": currentWidget
                                      })
                 }
-
+                z: hh.hovered ? 1 : 0
                 HoverHandler {
                     id: hh
                 }

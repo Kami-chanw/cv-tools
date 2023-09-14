@@ -14,31 +14,9 @@ Window {
     height: 400
     visible: true
     color: "#181818"
-    MyToolBox {
+    AlgoSelector {
         anchors.fill: parent
         model: fakeModel
     }
-    //    Loader {
-    //        anchors.centerIn: parent
-    //        sourceComponent: ItemDelegate {
-    //            contentItem: Rectangle {
-    //                color: "white"
-    //            }
-    //            width: 200
-    //            height: 200
-    //            onHoveredChanged: console.log(hovered)
-    //            MouseArea {
-    //                anchors.fill: parent
-    //                propagateComposedEvents: true
-    //                onClicked: e => {
-    //                               console.log("source")
-    //                               e.accepted = false
-    //                           }
-    //            }
-    //        }
-    //        MouseArea {
-    //            anchors.fill: parent
-    //            onClicked: console.log("loader")
-    //        }
-    //    }
+
 }

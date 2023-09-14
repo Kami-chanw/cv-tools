@@ -7,7 +7,6 @@ import math
 
 
 class Swirl(Algorithm):
-    ''' '''
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
         self.title = "Swirl effect"
@@ -15,16 +14,6 @@ class Swirl(Algorithm):
         self.Selector = Selector(1, 'Set center', 'Setting transform center')
         self.Selector.pointCount = 1
         self.addWidget(self.Selector)
-        '''
-        self.Slider_x = Slider('x_scale')
-        # Set the step_size of parameter x_scale
-        # TODO
-        self.addWidget(self.Slider_x)
-        self.Slider_y = Slider('y_scale')
-        # Set the step_size of parameter y_scale
-        # TODO
-        self.addWidget(self.Slider_y)
-        '''
         self.Slider_degree = Slider('degree')
         # Set the range and step_size of parameter degree
         self.Slider_degree.maximum = 10
@@ -57,6 +46,7 @@ class Swirl(Algorithm):
 
     def apply(self, image):
         degree = self.Slider_degree._currentValue
-        center_x, center_y = self.Selector._defaultValue[-1].x, self.Selector._defaultValue[-1].y
-        image = Swirl.transform(image, center_x, center_y, degree)
+        if self.Selector._defaultValue:
+            center_x, center_y = self.Selector._defaultValue[-1].x, self.Selector._defaultValue[-1].y
+            image = Swirl.transform(image, center_x, center_y, degree)
         return cv.cvtColor(image, cv.COLOR_BGR2BGRA)

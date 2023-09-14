@@ -28,10 +28,3 @@ class CvtColor(Algorithm):
             return cv.cvtColor(image, cv.COLOR_BGR2RGB)
         if self.combobox.currentValue == "Gray":
             return cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-
-
-cvtColor = CvtColor()
-group = AlgorithmGroup()
-group.title = "Image Effects"
-group.algorithms.append(cvtColor)
-__all__ = ["group"]

@@ -18,6 +18,10 @@ class Sine_transformation(Algorithm):
         self.x_period.maximum, self.x_period.minimum, self.x_period.stepSize = 20, 0, 1
         self.y_period = Slider('y_period', 'Transformation period in y direction')
         self.y_period.maximum, self.y_period.minimum, self.y_period.stepSize = 20, 0, 1
+        self.addWidget(self.x_scale)
+        self.addWidget(self.y_scale)
+        self.addWidget(self.x_period)
+        self.addWidget(self.y_period)
 
     @staticmethod
     def transform(input_img, x, y, xx, yy):

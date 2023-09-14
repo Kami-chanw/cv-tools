@@ -11,12 +11,12 @@ class Swirl(Algorithm):
         super().__init__(parent)
         self.title = "Swirl effect"
         self.informativeText = "Add a swirl effect to your image."
-        self.Selector = Selector(1, 'Set center', 'Setting transform center')
-        self.Selector.pointCount = 1
+        self.Selector = Selector(Selector.SelectorType['Rectangular'], 'Set center', 'Setting transform center')
+        # self.Selector.pointCount = 2
         self.addWidget(self.Selector)
         self.Slider_degree = Slider('degree')
         # Set the range and step_size of parameter degree
-        self.Slider_degree.maximum = 10
+        self.Slider_degree.maximum = 200
         self.Slider_degree.minimum = 1
         self.Slider_degree.stepSize = 1
         self.addWidget(self.Slider_degree)
@@ -47,6 +47,7 @@ class Swirl(Algorithm):
     def apply(self, image):
         degree = self.Slider_degree._currentValue
         if self.Selector._defaultValue:
+            print(1)
             center_x, center_y = self.Selector._defaultValue[-1].x, self.Selector._defaultValue[-1].y
             image = Swirl.transform(image, center_x, center_y, degree)
         return cv.cvtColor(image, cv.COLOR_BGR2BGRA)

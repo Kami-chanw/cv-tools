@@ -41,7 +41,7 @@ class Mean_blur(Algorithm):
         self.combobox.append("5", "")
         self.combobox.append("7", "")
         self.combobox.append("9", "")
-        self.title = 'mean blur'
+        self.title = 'Mean blur'
         self.informativeText = '均值模糊'
         self.combobox.defaultValue = "5"
         self.addWidget(self.combobox)
@@ -66,7 +66,7 @@ class Median_blur(Algorithm):
         self.combobox.append("5", "")
         self.combobox.append("7", "")
         self.combobox.append("9", "")
-        self.title = 'median blur'
+        self.title = 'Median blur'
         self.informativeText = '中值模糊'
         self.combobox.defaultValue = "5"
         self.addWidget(self.combobox)
@@ -91,7 +91,7 @@ class Gaussian_blur(Algorithm):
         self.combobox.append("5", "")
         self.combobox.append("7", "")
         self.combobox.append("9", "")
-        self.title = 'gaussian blur'
+        self.title = 'Gaussian blur'
         self.informativeText = '高斯模糊'
         self.combobox.defaultValue = "5"
         self.addWidget(self.combobox)
@@ -245,7 +245,6 @@ class Morph(Algorithm):
         self.addWidget(self.combobox3)
 
     def apply(self, img):  # 注意图片的名称
-
         # 获得参数
         op = self.combobox1.currentValue
         kshape = self.combobox2.currentValue
@@ -305,7 +304,6 @@ class Equalize(Algorithm):
 
         # 获得参数
         kind = self.combobox1.currentValue
-
         # 代码位置
         b, g, r, a = cv2.split(img)
         if kind == 'B':
@@ -327,7 +325,7 @@ class Flip_picture(Algorithm):
         super().__init__(parent)
 
         # 名称
-        self.title = 'flip picture'
+        self.title = 'Flip picture'
         self.informativeText = '图像翻转'
 
         # 一个参数

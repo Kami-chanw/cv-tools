@@ -94,8 +94,7 @@ class SessionData(QObject):
         height = qimage.height()
         ptr = qimage.constBits()
         img_data = np.array(ptr).reshape(height, width, 4)
-        cv_image = cv2.cvtColor(img_data, cv2.COLOR_BGRA2BGR)
-        return cv_image
+        return img_data
 
     def _cv2qt(self, cv_img):
         if len(cv_img.shape) == 2:  # 灰度图像

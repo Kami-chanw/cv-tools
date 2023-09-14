@@ -58,8 +58,6 @@ class IntValidator(QIntValidator, ValidatorExtend):
 
     @Slot(str,result=str)
     def fixup(self, input: str) -> str:
-        if not self._defaultValue is None:
-            return str(self._defaultValue)
         if not input.isdigit():
             return ""
         if int(input) < self.bottom():

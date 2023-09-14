@@ -36,7 +36,7 @@ group.algorithms.append(gray_picture)
 class Mean_blur(Algorithm):
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
-        self.combobox = ComboBox("kernel_size")
+        self.combobox = ComboBox("Kernel size", "Set the kernel size of the blur algorithm")
         self.combobox.append("1", "")
         self.combobox.append("3", "")
         self.combobox.append("5", "")
@@ -61,7 +61,7 @@ group.algorithms.append(mean_blur)
 class Median_blur(Algorithm):
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
-        self.combobox = ComboBox("kernel_size")
+        self.combobox = ComboBox("Kernel size", "Set the kernel size of the blur algorithm")
         self.combobox.append("1", "")
         self.combobox.append("3", "")
         self.combobox.append("5", "")
@@ -86,7 +86,7 @@ group.algorithms.append(median_blur)
 class Gaussian_blur(Algorithm):
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
-        self.combobox = ComboBox("kernel_size")
+        self.combobox = ComboBox("Kernel size", "Set the kernel size of the blur algorithm")
         self.combobox.append("1", "")
         self.combobox.append("3", "")
         self.combobox.append("5", "")
@@ -114,9 +114,9 @@ class Threshold(Algorithm):
 
         # 名称
         self.title = 'Threshold'
-        self.informativeText = 'Threshold'
+        self.informativeText = 'Set Threshold to the image'
 
-        self.combobox = ComboBox("thresh type")
+        self.combobox = ComboBox("Thresh type")
         self.combobox.append("Binary", "")
         self.combobox.append("Binary Inv", "")
         self.combobox.append("Trunc", "")
@@ -168,7 +168,13 @@ class Edge(Algorithm):
 
         # 名称
         self.title = 'Edge'
-        self.informativeText = 'Edge'
+        self.informativeText = 'Find edge information in the image'
+
+        self.combobox = ComboBox("Enable")
+        self.combobox.append("Yes")
+        self.combobox.append("No")
+        self.combobox.defaultValue = 'No'
+        self.addWidget(self.combobox)
 
         self.lineEdit1 = LineEdit("Thresh1", "0-255")
         self.lineEdit1.defaultValue = 0
@@ -184,9 +190,12 @@ class Edge(Algorithm):
 
     def apply(self, img):  # 注意图片的名称
 
+        if self.combobox.currentValue == 'No':
+            return img
+
         # 获得参数
-        thresh1 = self.lineEdit1.currentValue
-        thresh2 = self.lineEdit2.currentValue
+        thresh1 = int(self.lineEdit1.currentValue)
+        thresh2 = int(self.lineEdit2.currentValue)
         # 代码位置
         img = cv2.cvtColor(img, cv2.COLOR_BGRA2GRAY)
         img = cv2.Canny(img, thresh1, thresh2)
@@ -207,28 +216,28 @@ class Morph(Algorithm):
         self.informativeText = 'Morph'
 
         # 一个参数
-        self.combobox1 = ComboBox("operate")
-        self.combobox1.append("erode", "")
-        self.combobox1.append("dilate", "")
-        self.combobox1.append("open", "")
-        self.combobox1.append("close", "")
-        self.combobox1.append("gradient", "")
-        self.combobox1.append("top hat", "")
-        self.combobox1.append("black hat", "")
+        self.combobox1 = ComboBox("Operate", "Choose which operate you want to use")
+        self.combobox1.append("Erode", "")
+        self.combobox1.append("Dilate", "")
+        self.combobox1.append("Open", "")
+        self.combobox1.append("Close", "")
+        self.combobox1.append("Gradient", "")
+        self.combobox1.append("Top hat", "")
+        self.combobox1.append("Black hat", "")
         self.combobox1.append("None")
         self.combobox1.defaultValue = "None"
         self.addWidget(self.combobox1)
 
         # 一个参数
-        self.combobox2 = ComboBox("kshape")
-        self.combobox2.append("rect", "")
-        self.combobox2.append("cross", "")
-        self.combobox2.append("ellipse", "")
-        self.combobox2.defaultValue = "rect"
+        self.combobox2 = ComboBox("Kernel shape", "Choose the shape of kernel")
+        self.combobox2.append("Rect", "")
+        self.combobox2.append("Cross", "")
+        self.combobox2.append("Ellipse", "")
+        self.combobox2.defaultValue = "Rect"
         self.addWidget(self.combobox2)
 
         # 一个参数
-        self.combobox3 = ComboBox("ksize")
+        self.combobox3 = ComboBox("Kernel size", "Choose the size of kernel")
         self.combobox3.append("1", "")
         self.combobox3.append("3", "")
         self.combobox3.append("5", "")
@@ -246,7 +255,7 @@ class Morph(Algorithm):
         # 代码位置
         shape = cv2.MORPH_ELLIPSE
         cvop = cv2.MORPH_ERODE
-        if op == "Nonoe": return img
+        if op == "None": return img
         if kshape == "rect":
             shape = cv2.MORPH_ELLIPSE
         if kshape == "cross":
@@ -287,17 +296,21 @@ class Equalize(Algorithm):
         self.informativeText = 'Equalize'
 
         # 一个参数
-        self.combobox1 = ComboBox("kind")
-        self.combobox1.append("B", "")
-        self.combobox1.append("G", "")
-        self.combobox1.append("R", "")
-        self.combobox1.defaultValue = "B"
+        self.combobox1 = ComboBox("Kind", "Choose which Channel you want to equalize")
+        self.combobox1.append("B", "Blue Channel")
+        self.combobox1.append("G", "Green Channel")
+        self.combobox1.append("R", "Red Channel")
+        self.combobox1.append("None")
+        self.combobox1.defaultValue = "None"
         self.addWidget(self.combobox1)
 
     def apply(self, img):  # 注意图片的名称
 
         # 获得参数
         kind = self.combobox1.currentValue
+
+        if kind == 'None': 
+            return img
 
         # 代码位置
         b, g, r, a = cv2.split(img)

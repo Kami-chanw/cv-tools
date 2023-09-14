@@ -1,5 +1,6 @@
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
+import CvTools
 
 TextField {
     id: control
@@ -61,7 +62,9 @@ TextField {
                                            control.cursorPosition)) === Enums.State.Invalid
         }
         function onEditingFinished() {
-            control.fullText = widget.validator.fixup(control.fullText)
+            if (Number(widget.validator.validate(control.fullText,
+                                                 control.cursorPosition)) === Enums.State.Invalid)
+                control.fullText = widget.validator.fixup(control.fullText)
             widget.currentValue = control.fullText
         }
     }

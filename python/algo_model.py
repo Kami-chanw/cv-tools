@@ -40,10 +40,6 @@ class AbstractAlgorithm(QObject):
             self._informativeTitle = text
             self.informativeTextChanged.emit()
 
-    @Slot(list, result=False)
-    def checkPrerequisition(self, algoList: list):
-        return False
-
 
 class AlgorithmGroup(AbstractAlgorithm):
 

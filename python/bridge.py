@@ -123,8 +123,6 @@ class SessionData(QObject):
             self.frameChanged.emit(index)
 
     def applyAlgorithms(self, index):
-        if len(self._algoModel[index].algorithms) == 0:
-            return
         currentFrame = self._qt2cv(self._origin_image)
         for algo in self._algoModel[index].algorithms:
             if algo.enabled:

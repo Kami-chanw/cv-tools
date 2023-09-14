@@ -7,6 +7,7 @@ from .sine_transformation import Sine_transformation
 from .swirl import Swirl
 import cv2
 import numpy as np
+from python.validator import IntValidator
 
 # 第x个函数
 
@@ -41,8 +42,8 @@ class Mean_blur(Algorithm):
         self.combobox.append("5", "")
         self.combobox.append("7", "")
         self.combobox.append("9", "")
-        self.title = 'Mean blur'
-        self.informativeText = '均值模糊'
+        self.title = 'Mean Blur'
+        self.informativeText = 'mean blur'
         self.combobox.defaultValue = "5"
         self.addWidget(self.combobox)
 
@@ -66,8 +67,8 @@ class Median_blur(Algorithm):
         self.combobox.append("5", "")
         self.combobox.append("7", "")
         self.combobox.append("9", "")
-        self.title = 'Median blur'
-        self.informativeText = '中值模糊'
+        self.title = 'Median Blur'
+        self.informativeText = 'median blur'
         self.combobox.defaultValue = "5"
         self.addWidget(self.combobox)
 
@@ -91,8 +92,8 @@ class Gaussian_blur(Algorithm):
         self.combobox.append("5", "")
         self.combobox.append("7", "")
         self.combobox.append("9", "")
-        self.title = 'Gaussian blur'
-        self.informativeText = '高斯模糊'
+        self.title = 'Gaussian Blur'
+        self.informativeText = 'Gaussian blur'
         self.combobox.defaultValue = "5"
         self.addWidget(self.combobox)
 
@@ -127,9 +128,7 @@ class Threshold(Algorithm):
 
         self.lineEdit = LineEdit("Thresh", "0-255")
         self.lineEdit.defaultValue = 0
-        self.lineEdit.validator = QIntValidator()
-        self.lineEdit.validator.setBottom(0)
-        self.lineEdit.validator.setTop(255)
+        self.lineEdit.validator = IntValidator(0, 255, 0)
         self.lineEdit.maximumLength = 3
 
         self.addWidget(self.lineEdit)
@@ -173,19 +172,13 @@ class Edge(Algorithm):
 
         self.lineEdit1 = LineEdit("Thresh1", "0-255")
         self.lineEdit1.defaultValue = 0
-        self.lineEdit1.validator = QIntValidator()
-        self.lineEdit1.validator.setBottom(0)
-        self.lineEdit1.validator.setTop(255)
-        self.lineEdit1.maximumLength = 3
+        self.lineEdit1.validator = IntValidator(0, 255, 0)
 
         self.addWidget(self.lineEdit1)
 
         self.lineEdit2 = LineEdit("Thresh2", "0-255")
         self.lineEdit2.defaultValue = 0
-        self.lineEdit2.validator = QIntValidator()
-        self.lineEdit2.validator.setBottom(0)
-        self.lineEdit2.validator.setTop(255)
-        self.lineEdit2.maximumLength = 3
+        self.lineEdit2.validator = IntValidator(0, 255, 0)
 
         self.addWidget(self.lineEdit2)
 
@@ -215,13 +208,13 @@ class Morph(Algorithm):
 
         # 一个参数
         self.combobox1 = ComboBox("operate")
-        self.combobox1.append("腐蚀", "")
-        self.combobox1.append("膨胀", "")
-        self.combobox1.append("开", "")
-        self.combobox1.append("闭", "")
-        self.combobox1.append("梯度", "")
-        self.combobox1.append("顶帽", "")
-        self.combobox1.append("黑帽", "")
+        self.combobox1.append("erode", "")
+        self.combobox1.append("dilate", "")
+        self.combobox1.append("open", "")
+        self.combobox1.append("close", "")
+        self.combobox1.append("gradient", "")
+        self.combobox1.append("top hat", "")
+        self.combobox1.append("black hat", "")
         self.combobox1.append("None")
         self.combobox1.defaultValue = "None"
         self.addWidget(self.combobox1)
@@ -245,6 +238,7 @@ class Morph(Algorithm):
         self.addWidget(self.combobox3)
 
     def apply(self, img):  # 注意图片的名称
+
         # 获得参数
         op = self.combobox1.currentValue
         kshape = self.combobox2.currentValue
@@ -259,19 +253,19 @@ class Morph(Algorithm):
             shape = cv2.MORPH_CROSS
         if kshape == "ellipse":
             shape = cv2.MORPH_RECT
-        if op == "腐蚀":
+        if op == "erode":
             cvop = cv2.MORPH_ERODE
-        if op == "膨胀":
+        if op == "dilate":
             cvop = cv2.MORPH_DILATE
-        if op == "开":
+        if op == "open":
             cvop = cv2.MORPH_OPEN
-        if op == "闭":
+        if op == "close":
             cvop = cv2.MORPH_CLOSE
-        if op == "梯度":
+        if op == "gradient":
             cvop = cv2.MORPH_GRADIENT
-        if op == "顶帽":
+        if op == "top hat":
             cvop = cv2.MORPH_TOPHAT
-        if op == "黑帽":
+        if op == "black hat":
             cvop = cv2.MORPH_BLACKHAT
         kernal = cv2.getStructuringElement(shape, (ksize, ksize))
 
@@ -304,6 +298,7 @@ class Equalize(Algorithm):
 
         # 获得参数
         kind = self.combobox1.currentValue
+
         # 代码位置
         b, g, r, a = cv2.split(img)
         if kind == 'B':
@@ -325,8 +320,8 @@ class Flip_picture(Algorithm):
         super().__init__(parent)
 
         # 名称
-        self.title = 'Flip picture'
-        self.informativeText = '图像翻转'
+        self.title = 'Flip Picture'
+        self.informativeText = 'Picture flip'
 
         # 一个参数
         self.combobox1 = ComboBox("direction")

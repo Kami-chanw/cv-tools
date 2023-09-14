@@ -26,6 +26,7 @@ class AbstractWidget(QObject):
 
     titleChanged = Signal()
     title = Property(str, lambda self: self._title, notify=titleChanged)
+
     @classmethod
     def load(cls, data):
         pass
@@ -167,7 +168,7 @@ class Slider(AbstractWidget):
 
     minimumChanged = Signal()
     minimum = Property(float, lambda self: self._minimum, notify=minimumChanged)
-    
+
     @classmethod
     def load(cls, data):
         widget = cls(data['title'], data['informativeText'])
@@ -182,7 +183,7 @@ class Slider(AbstractWidget):
         data['maximum'] = self._maximum
         data['stepSize'] = self._stepSize
         return data
-      
+
     @minimum.setter
     def minimum(self, minimum):
         if self._minimum != minimum:
@@ -191,6 +192,7 @@ class Slider(AbstractWidget):
 
     stepSizeChanged = Signal()
     stepSize = Property(float, lambda self: self._stepSize, notify=stepSizeChanged)
+
     @stepSize.setter
     def stepSize(self, step):
         if self._stepSize != step:
@@ -199,12 +201,12 @@ class Slider(AbstractWidget):
 
     maximumChanged = Signal()
     maximum = Property(float, lambda self: self._maximum, notify=maximumChanged)
+
     @maximum.setter
     def maximum(self, maximum):
         if self._maximum != maximum:
             self._maximum = maximum
             self.maximumChanged.emit()
-
 
 
 class LineEdit(AbstractWidget):
@@ -238,6 +240,7 @@ class LineEdit(AbstractWidget):
 
     placeholderTextChanged = Signal()
     placeholderText = Property(str, lambda self: self._placeholderText, notify=placeholderTextChanged)
+
     @placeholderText.setter
     def placeholderText(self, placeholderText):
         if self._placeholderText != placeholderText:
@@ -246,6 +249,7 @@ class LineEdit(AbstractWidget):
 
     maximumLengthChanged = Signal()
     maximumLength = Property(int, lambda self: self._maximumLength, notify=maximumLengthChanged)
+
     @maximumLength.setter
     def maximumLength(self, maximumLength):
         if self._maximumLength != maximumLength:
@@ -254,12 +258,12 @@ class LineEdit(AbstractWidget):
 
     validatorChanged = Signal()
     validator = Property(QObject, lambda self: self._validator, notify=validatorChanged)
+
     @validator.setter
     def validator(self, validator):
         if self._validator != validator:
             self._validator = validator
             self.validatorChanged.emit()
-
 
 
 class CheckBox(AbstractWidget):
@@ -269,26 +273,34 @@ class CheckBox(AbstractWidget):
                  informativeText=None,
                  parent: QObject | None = None) -> None:
         super().__init__(title, informativeText,
-        AbstractWidget.WidgetType.CheckBox, parent)
+                         AbstractWidget.WidgetType.CheckBox, parent)
         self._text = None
 
-        textChanged = Signal()
-        text = Property(str, lambda self: self._text, notify=textChanged)
-        @text.setter
-        def text(self, text):
-            if self._text != text:
-                self._text = text
-                self.textChanged.emit()
+    textChanged = Signal()
+    text = Property(str, lambda self: self._text, notify=textChanged)
+
+    @text.setter
+    def text(self, text):
+        if self._text != text:
+            self._text = text
+            self.textChanged.emit()
+
+    @classmethod
+    def load(cls, data):
+        widget = cls(data['title'], data['informativeText'])
+        widget._text = data['text']
+        return widget
+
+    def toPlainData(self):
+        data = AbstractWidget.toPlainData(self)
+        data['text'] = self._text
+        return data
 
 
 class Selector(AbstractWidget):
-    @QEnum
-    class SelectorType(Enum):
-        Rectangular, Polygen = range(2)
 
-    @QEnum
     class SelectorType(Enum):
-        Rectangular, Polygen = range(2)
+        Rectangular, Polygon = range(2)
 
     def __init__(self,
                  selectorType: SelectorType,
@@ -301,11 +313,26 @@ class Selector(AbstractWidget):
         self._pointCount = None
         self._defaultValue = []
 
+    @classmethod
+    def load(cls, data):
+        widget = cls(Selector.SelectorType(data['selector_type']), data['title'], data['informativeText'])
+        widget._defaultValue = data['default_value']
+        widget._pointCount = data['point_count']
+        return widget
+
+    def toPlainData(self):
+        data = AbstractWidget.toPlainData(self)
+        data['point_count'] = self._pointCount
+        data['default_value'] = self._defaultValue
+        data['selector_type'] = self._selectorType.value
+        return data
+
     selectorType = Property(int,
                             lambda self: self._selectorType.value,
                             constant=True)
 
     pointCountChanged = Signal()
+
     @Property(int, notify=pointCountChanged)
     def pointCount(self):
         if self._selectorType == Selector.SelectorType.Rectangular:

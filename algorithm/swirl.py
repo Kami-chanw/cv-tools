@@ -59,4 +59,4 @@ class Swirl(Algorithm):
         degree = self.Slider_degree._currentValue
         center_x, center_y = self.Selector._defaultValue[-1].x, self.Selector._defaultValue[-1].y
         image = Swirl.transform(image, center_x, center_y, degree)
-        return cv.cvtColor(image, cv.COLOR_BGR2RGBA)
+        return cv.cvtColor(image, cv.COLOR_BGR2BGRA)

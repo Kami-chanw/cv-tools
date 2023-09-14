@@ -44,4 +44,4 @@ class Sine_transformation(Algorithm):
     def apply(self, image):
         image = Sine_transformation.transform(image, self.x_scale._currentValue, self.y_scale._currentValue,
                                               self.x_period._currentValue, self.y_period._currentValue)
-        return cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+        return cv.cvtColor(image, cv.COLOR_BGR2BGRA)

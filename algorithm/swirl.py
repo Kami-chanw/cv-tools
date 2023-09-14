@@ -1,9 +1,10 @@
-from PySide6.QtCore import QObject
-from python.algo_model import Algorithm, AlgorithmGroup
-from python.algo_widgets import *
+import math
+
 import cv2 as cv
 import numpy as np
-import math
+
+from python.algo_model import Algorithm
+from python.algo_widgets import *
 
 
 class Swirl(Algorithm):
@@ -12,7 +13,6 @@ class Swirl(Algorithm):
         self.title = "Swirl effect"
         self.informativeText = "Add a swirl effect to your image."
         self.Selector = Selector(Selector.SelectorType['Rectangular'], 'Set center', 'Setting transform center')
-        # self.Selector.pointCount = 2
         self.addWidget(self.Selector)
         self.Slider_degree = Slider('degree')
         # Set the range and step_size of parameter degree
@@ -25,7 +25,6 @@ class Swirl(Algorithm):
     def transform(input_img, x, y, dg):
         row, col, channel = input_img.shape
         trans_img = input_img.copy()
-        img_out = input_img * 1.0
         degree = dg
         center_x = x
         center_y = y
@@ -45,9 +44,9 @@ class Swirl(Algorithm):
         return dst
 
     def apply(self, image):
-        degree = self.Slider_degree._currentValue
-        if self.Selector._defaultValue:
-            print(1)
-            center_x, center_y = self.Selector._defaultValue[-1].x, self.Selector._defaultValue[-1].y
+        degree = self.Slider_degree.currentValue
+        if self.Selector.currentValue:
+            value = self.Selector.currentValue[-1]
+            center_x, center_y = value.x(), value.y()
             image = Swirl.transform(image, center_x, center_y, degree)
         return cv.cvtColor(image, cv.COLOR_BGR2BGRA)

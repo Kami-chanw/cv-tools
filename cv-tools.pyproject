@@ -21,13 +21,15 @@
         "qml/components/MySplitHandle.qml",
         "qml/Test.qml",
         "qml/AlgoListItem.qml",
-        "qml/algo_widgets/AlgoComboBox.qml",
+        "qml/algo_components/AlgoComboBox.qml",
         "qml/components/MyIconButton.qml",
         "qml/components/MyToolTip.qml",
-        "qml/algo_widgets/AlgoSlider.qml",
-        "qml/algo_widgets/AlgoLineEdit.qml",
-        "qml/algo_widgets/AlgoCheckBox.qml",
-        "qml/algo_widgets/AlgoSelector.qml"
+        "qml/algo_components/AlgoSlider.qml",
+        "qml/algo_components/AlgoLineEdit.qml",
+        "qml/algo_components/AlgoCheckBox.qml",
+        "qml/algo_components/AlgoSelector.qml",
+        "qml/algo_components/AlgoStackLayout.qml",
+        "qml/algo_components/AlgoList.qml"
     ],
     "qmlImportPaths": [
         "3rdparty/KmcUI/src/imports"

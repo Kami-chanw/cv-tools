@@ -113,7 +113,8 @@ ShadowWindow {
             onTriggered: {
                 var algorithm = algorithmTreeModel.data(index, Qt.UserRole)
                 sessionData.algoModel[Number(sessionData.isClonedView
-                                             && !algoList.activeFocus)].append(algorithm)
+                                             && !algoList.activeFocus)].append(
+                            algorithm.newObject())
             }
         }
     }
@@ -122,7 +123,7 @@ ShadowWindow {
         for (var i = 0; i < algorithmTreeModel.rowCount(parentIndex); ++i) {
             const currentIndex = algorithmTreeModel.index(i, 0, parentIndex)
             const node = algorithmTreeModel.data(currentIndex, Qt.UserRole)
-            if (node.algorithms !== undefined) {
+            if (node.enabled === undefined) {
                 var group = algoGroup.createObject(parent, {
                                                        "title": algorithmTreeModel.data(
                                                                     currentIndex, Qt.DisplayRole)

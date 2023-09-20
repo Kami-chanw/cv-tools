@@ -15,10 +15,7 @@ TextField {
     required property var widget
     placeholderText: widget?.placeholderText ?? ""
     maximumLength: widget?.maximumLength ?? -1
-    Component.onCompleted: {
-        if (widget.defaultValue !== undefined)
-            fullText = widget.defaultValue
-    }
+    Component.onCompleted: fullText = widget.currentValue
 
     selectByMouse: true
     background: Rectangle {

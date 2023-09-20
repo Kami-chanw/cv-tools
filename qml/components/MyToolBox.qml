@@ -30,6 +30,7 @@ ToolBox {
         id: boxDelegate
         implicitHeight: 22
         rightPadding: 4
+        Component.onCompleted: toggleContent()
         contentItem: Item {
             Text {
                 anchors {
@@ -51,7 +52,7 @@ ToolBox {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.rightMargin: 10
                 spacing: 3
-//                visible: boxDelegate.hovered
+                visible: boxDelegate.hovered
                 MyIconButton {
                     height: boxDelegate.height - 2
                     width: height

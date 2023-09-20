@@ -4,14 +4,17 @@ from PySide6.QtGui import QValidator, QStandardItem, QStandardItemModel
 from PySide6.QtQml import QJSValue
 from python.validator import *
 from enum import Enum
-import sys
+from typing import List, Tuple, overload
+import copy
+
+
+@QEnum
+class WidgetType(Enum):
+    ComboBox, LineEdit, SpinBox, Slider, Selector, CheckBox, StackLayout = range(
+        7)
 
 
 class AbstractWidget(QObject):
-
-    @QEnum
-    class WidgetType(Enum):
-        ComboBox, LineEdit, SpinBox, Slider, Selector, CheckBox = range(6)
 
     def __init__(self,
                  title,
@@ -22,11 +25,19 @@ class AbstractWidget(QObject):
         self._title = title
         self._informativeText = informativeText
         self._currentValue = None
-        self._defaultValue = None
         self._type = type
 
-    titleChanged = Signal()
-    title = Property(str, lambda self: self._title, notify=titleChanged)
+    def __deepcopy__(self, memo):
+        if memo is None:
+            memo = {}
+        widget = self.__class__.__new__(self.__class__)
+        widget.__init__(self._title)
+        memo[id(self)] = widget
+        for key, value in self.__dict__.items():
+            if key.startswith("_") and not issubclass(type(getattr(self, key)),
+                                                      QObject):
+                setattr(widget, key, copy.deepcopy(value, memo))
+        return widget
 
     @classmethod
     def load(cls, data):
@@ -34,7 +45,6 @@ class AbstractWidget(QObject):
         '''
         widget = cls(data['title'], data['informativeText'], data['type'])
         widget._currentValue = data['currentValue']
-        widget._defaultValue = data['defaultValue']
         return widget
         '''
 
@@ -43,26 +53,13 @@ class AbstractWidget(QObject):
         data['title'] = self._title
         data['informativeText'] = self._informativeText
         data['currentValue'] = self._currentValue
-        data['defaultValue'] = self._defaultValue
         data['type'] = self._type
         return data
 
-    @title.setter
-    def title(self, title):
-        if self._title != title:
-            self._title = title
-            self.titleChanged.emit()
-
-    informativeTextChanged = Signal()
+    title = Property(str, lambda self: self._title, constant=True)
     informativeText = Property(str,
                                lambda self: self._informativeText,
-                               notify=informativeTextChanged)
-
-    @informativeText.setter
-    def informativeText(self, informativeText):
-        if self._informativeText != informativeText:
-            self._informativeText = informativeText
-            self.informativeTextChanged.emit()
+                               constant=True)
 
     type = Property(int, lambda self: self._type.value, constant=True)
 
@@ -72,7 +69,7 @@ class AbstractWidget(QObject):
     def currentValue(self):
         if type(self._currentValue) is QJSValue:
             return self._currentValue.toVariant()
-        if self._currentValue is None:
+        if self._currentValue is None and hasattr(self, "_defaultValue"):
             self._currentValue = self._defaultValue
         return self._currentValue
 
@@ -82,17 +79,6 @@ class AbstractWidget(QObject):
             self._currentValue = currentValue
             self.currentValueChanged.emit()
 
-    defaultValueChanged = Signal()
-    defaultValue = Property("QVariant",
-                            lambda self: self._defaultValue,
-                            notify=defaultValueChanged)
-
-    @defaultValue.setter
-    def defaultValue(self, defaultValue):
-        if self._defaultValue != defaultValue:
-            self._defaultValue = defaultValue
-            self.defaultValueChanged.emit()
-
 
 class ComboBox(AbstractWidget):
 
@@ -100,9 +86,20 @@ class ComboBox(AbstractWidget):
                  title,
                  informativeText=None,
                  parent: QObject | None = None) -> None:
-        super().__init__(title, informativeText,
-                         AbstractWidget.WidgetType.ComboBox, parent)
+        super().__init__(title, informativeText, WidgetType.ComboBox, parent)
         self._labelModel = QStandardItemModel(self)
+        self._defaultValue = None
+
+    def __deepcopy__(self, memo):
+        if memo is None:
+            memo = {}
+        combobox: ComboBox = super().__deepcopy__(memo)
+        combobox.extend([(self._labelModel.data(self._labelModel.index(i, 0),
+                                                Qt.DisplayRole),
+                          self._labelModel.data(self._labelModel.index(i, 0),
+                                                Qt.ToolTipRole))
+                         for i in range(self._labelModel.rowCount())])
+        return combobox
 
     @classmethod
     def load(cls, data):
@@ -132,6 +129,25 @@ class ComboBox(AbstractWidget):
     def append(self, label, tip=None):
         self.insert(self._labelModel.rowCount(), label, tip)
 
+    @overload
+    def extend(self, labelList: List[str]) -> None:
+        ...
+
+    @overload
+    def extend(
+        self, pairList: List[Tuple[str, str | None]] | List[List[str | None]]
+    ) -> None:
+        ...
+
+    def extend(self, argsList):
+        for args in argsList:
+            label, tip = None, None
+            if type(args) is str:
+                label = args
+            else:
+                label, tip = args[0], None if len(args) == 1 else args[1]
+            self.append(label, tip)
+
     def insert(self, idx, label, tip=None):
         item = QStandardItem()
         item.setData(label, Qt.DisplayRole)
@@ -153,6 +169,16 @@ class ComboBox(AbstractWidget):
     labelModel = Property(QObject,
                           lambda self: self._labelModel,
                           constant=True)
+    defaultValueChanged = Signal()
+    defaultValue = Property("QVariant",
+                            lambda self: self._defaultValue,
+                            notify=defaultValueChanged)
+
+    @defaultValue.setter
+    def defaultValue(self, defaultValue):
+        if self._defaultValue != defaultValue:
+            self._defaultValue = defaultValue
+            self.defaultValueChanged.emit()
 
 
 class Slider(AbstractWidget):
@@ -161,8 +187,7 @@ class Slider(AbstractWidget):
                  title,
                  informativeText=None,
                  parent: QObject | None = None) -> None:
-        super().__init__(title, informativeText,
-                         AbstractWidget.WidgetType.Slider, parent)
+        super().__init__(title, informativeText, WidgetType.Slider, parent)
         self._minimum = 0.0
         self._stepSize = 0.0
         self._maximum = 0.0
@@ -222,11 +247,15 @@ class LineEdit(AbstractWidget):
                  title,
                  informativeText=None,
                  parent: QObject | None = None) -> None:
-        super().__init__(title, informativeText,
-                         AbstractWidget.WidgetType.LineEdit, parent)
+        super().__init__(title, informativeText, WidgetType.LineEdit, parent)
         self._placeholderText = ""
         self._maximumLength = -1
         self._validator = None
+
+    def __deepcopy__(self, memo):
+        lineedit: LineEdit = super().__deepcopy__(memo)
+        lineedit._validator = copy.deepcopy(self._validator, memo)
+        return lineedit
 
     @classmethod
     def load(cls, data):
@@ -285,8 +314,7 @@ class CheckBox(AbstractWidget):
                  title,
                  informativeText=None,
                  parent: QObject | None = None) -> None:
-        super().__init__(title, informativeText,
-                         AbstractWidget.WidgetType.CheckBox, parent)
+        super().__init__(title, informativeText, WidgetType.CheckBox, parent)
         self._text = None
 
     textChanged = Signal()
@@ -321,29 +349,25 @@ class Selector(AbstractWidget):
                  informativeText=None,
                  pointCount=None,
                  parent: QObject | None = None) -> None:
-        super().__init__(title, informativeText,
-                         AbstractWidget.WidgetType.Selector, parent)
+        super().__init__(title, informativeText, WidgetType.Selector, parent)
         self._selectorType = selectorType
-        self._defaultValue = []
         if selectorType == Selector.SelectorType.Rectangular:
             self._pointCount = 4
         elif selectorType == Selector.SelectorType.Polygon:
             self._pointCount = pointCount
         else:
-            self._selectorType = None
+            self._pointCount = 0
 
     @classmethod
     def load(cls, data):
         widget = cls(Selector.SelectorType(data['selector_type']),
                      data['title'], data['informativeText'])
-        widget._defaultValue = data['default_value']
         widget._pointCount = data['point_count']
         return widget
 
     def toPlainData(self):
         data = AbstractWidget.toPlainData(self)
         data['point_count'] = self._pointCount
-        data['default_value'] = self._defaultValue
         data['selector_type'] = self._selectorType.value
         return data
 

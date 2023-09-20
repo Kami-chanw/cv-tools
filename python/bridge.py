@@ -11,7 +11,7 @@ from enum import Enum
 from pathlib import Path, WindowsPath
 from .image_loader import *
 from .algo_model import *
-from .algo_widgets import AbstractWidget
+from .algo_widgets import WidgetType
 from functools import partial
 import re
 import cv2
@@ -21,7 +21,7 @@ import pickle
 
 @QmlElement
 class Enums(QObject):
-    WidgetType = QEnum(AbstractWidget.WidgetType)
+    WidgetType = QEnum(WidgetType)
     SelectorType = QEnum(Selector.SelectorType)
     State = QEnum(QValidator.State)
 
@@ -50,7 +50,7 @@ class SessionData(QObject):
             self._filePath = path
             reader = QImageReader(str(path))
             self._origin_image = reader.read()
-            if self._origin_image is None:
+            if self._origin_image.isNull():
                 raise IOError(reader.errorString())
             self.frame = [self._origin_image]
 
@@ -82,6 +82,8 @@ class SessionData(QObject):
                 else:
                     reader = QImageReader(str(self._filePath))
                     self._origin_image = reader.read()
+                    if self._origin_image.isNull():
+                        raise IOError(reader.errorString())
                     self.frame = [self._origin_image]
                     self.applyAlgorithms(0)
         else:

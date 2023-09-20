@@ -57,11 +57,18 @@ class AbstractWidget(QObject):
         return data
 
     title = Property(str, lambda self: self._title, constant=True)
+    type = Property(int, lambda self: self._type.value, constant=True)
+
+    informativeTextChanged = Signal()
     informativeText = Property(str,
                                lambda self: self._informativeText,
-                               constant=True)
+                               notify=informativeTextChanged)
 
-    type = Property(int, lambda self: self._type.value, constant=True)
+    @informativeText.setter
+    def informativeText(self, text):
+        if self._informativeText != text:
+            self._informativeText = text
+            self.informativeTextChanged.emit()
 
     currentValueChanged = Signal()
 

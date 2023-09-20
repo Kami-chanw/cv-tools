@@ -11,9 +11,7 @@ Here is a full example.
 class CvtColor(Algorithm):
 
     def __init__(self, parent: QObject = None) -> None:
-        super().__init__(parent)
-        self.title = "Convert Color Space"
-        self.informativeText = "Convert color space to a specific one."
+        super().__init__("Convert Color Space", "Convert color space to a specific one", parent)
         self.combobox = ComboBox("Target Color Space")
         self.combobox.append("HSV", "Convert color space from BGR to HSV")
         self.combobox.append("RGB", "Convert color space from BGR to RGB")
@@ -31,24 +29,17 @@ class CvtColor(Algorithm):
             return cv.cvtColor(image, cv.COLOR_BGR2RGB)
         if self.combobox.currentValue == "Gray":
             return cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-
-cvtColor = CvtColor()
-group = AlgorithmGroup()
-group.algorithms.append(cvtColor)
-
+        
+group = AlgorithmGroup("Basic Image Effects")
+group.insert(CvtColor())
 __all__ = ["group"]
 ```
 
 Then you can see you algorithm at menu *Edit -> \<Your algorithm group name\> -> \<Your sub ablgorithm group name\> -> ... -> \<Your algorithm\>*.
 
+Learn more about algorithms [here](Algorithm.md).
 # How to use controls?
-## LineEdit
-TODO..
-## ComboBox
-TODO..
-## Selector
-TODO..
-## Slider
-TODO..
-## CheckBox
-TODO..
+Basically, you can import `python.algo_widgets` to use various controls. When the control is initialized (that is, when `__init__` is called), at least `title` needs to be specified. Then you can access `currentValue` to get data provided by a control.
+
+Learn more about controls [here](Controls.md)
+

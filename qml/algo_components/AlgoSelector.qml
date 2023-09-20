@@ -9,6 +9,15 @@ Row {
 
     Component.onCompleted: {
         imageMouseArea.selectorType = widget.selectorType
+        imageMouseArea.pointCount = widget.pointCount
+    }
+
+    Connections {
+        target: imageMouseArea
+        function onPointCountChanged() {
+            if (imageMouseArea.pointCount !== widget.pointCount)
+                widget.pointCount = imageMouseArea.pointCount
+        }
     }
 
     Button {
@@ -39,6 +48,7 @@ Row {
         onClicked: {
             if (control.state === "ready") {
                 control.state = "selecting"
+                widget.currentValue = []
                 control.imageMouseArea.startSelection()
             } else {
                 control.state = "ready"

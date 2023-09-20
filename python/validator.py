@@ -3,12 +3,12 @@ from PySide6.QtCore import QObject, Signal, Property, QEnum, Slot
 from typing import overload
 from enum import Enum
 import sys
+import copy
 
 
 class ValidatorExtend:
 
-    def __init__(self, parent=None):
-        # super().__init__(parent)
+    def __init__(self):
         self._defaultValue = None
         self._errorString = None
 
@@ -42,21 +42,24 @@ class IntValidator(QIntValidator, ValidatorExtend):
                  top: int = sys.maxsize,
                  defaultValue=None,
                  parent: QObject = None):
-        super().__init__(parent)
+        super().__init__()
+        self.setParent(parent)
         self.setBottom(bottom)
         self.setTop(top)
         self._defaultValue = defaultValue
 
     @Slot(str, int, result=QValidator.State)
     def validate(self, input: str, pos: int):
-        if not (input.isdigit() or (input.startswith('-') and input[1:].isdigit())):
+        if not (input.isdigit() or
+                (input.startswith('-') and input[1:].isdigit())):
             self.errorString = "The input value must be an integer."
             return QValidator.State.Invalid
-        if super().validate(input, pos)[0] != QValidator.State.Acceptable:
+        result = super().validate(input, pos)[0]
+        if result != QValidator.State.Acceptable:
             self.errorString = f"The input value must be in range {self.bottom()}~{self.top()}."
-        return super().validate(input, pos)[0]
+        return result
 
-    @Slot(str,result=str)
+    @Slot(str, result=str)
     def fixup(self, input: str) -> str:
         if not input.isdigit():
             return ""
@@ -65,6 +68,17 @@ class IntValidator(QIntValidator, ValidatorExtend):
         if int(input) > self.top():
             return str(self.top())
         return super().fixup(input)
+
+    def __deepcopy__(self, memo):
+        if memo is None:
+            memo = {}
+        validator = self.__class__.__new__(self.__class__)
+        validator.__init__()
+        memo[id(self)] = validator
+        validator.setBottom(self.bottom())
+        validator.setTop(self.top())
+        validator._defaultValue = self._defaultValue
+        return validator
 
 
 class DoubleValidator(QDoubleValidator, ValidatorExtend):
@@ -75,22 +89,25 @@ class DoubleValidator(QDoubleValidator, ValidatorExtend):
                  decimals: int = -1,
                  defaultValue=None,
                  parent: QObject = None):
-        super().__init__(bottom=bottom,
-                         top=top,
-                         decimals=decimals,
-                         parent=parent)
+        super().__init__()
+        self.setParent(parent)
+        self.setTop(top)
+        self.setBottom(bottom)
+        self.setDecimals(decimals)
         self._defaultValue = defaultValue
 
     @Slot(str, int, result=QValidator.State)
     def validate(self, input: str, pos: int):
-        if not (input.isdecimal() or (input.startswith('-') and input[1:].isdecimal())):
+        if not (input.isdecimal() or
+                (input.startswith('-') and input[1:].isdecimal())):
             self.errorString = "The input value must be a decimal."
             return QValidator.State.Invalid
-        if super().validate(input, pos)[0] != QValidator.State.Acceptable:
+        result = super().validate(input, pos)[0]
+        if result != QValidator.State.Acceptable:
             self.errorString = f"The input value must be in range {self.bottom()}~{self.top()}."
-        return super().validate(input, pos)[0]
+        return result
 
-    @Slot(str,result=str) 
+    @Slot(str, result=str)
     def fixup(self, input: str) -> str:
         if not self._defaultValue is None:
             return str(self._defaultValue)
@@ -102,6 +119,18 @@ class DoubleValidator(QDoubleValidator, ValidatorExtend):
             return str(self.top())
         return super().fixup(input)
 
+    def __deepcopy__(self, memo):
+        if memo is None:
+            memo = {}
+        validator = self.__class__.__new__(self.__class__)
+        validator.__init__()
+        memo[id(self)] = validator
+        validator.setBottom(self.bottom())
+        validator.setTop(self.top())
+        validator.setDecimals(self.decimals())
+        validator._defaultValue = self._defaultValue
+        return validator
+
 
 class RegularExpressionValidator(QRegularExpressionValidator, ValidatorExtend):
 
@@ -109,17 +138,30 @@ class RegularExpressionValidator(QRegularExpressionValidator, ValidatorExtend):
                  re: str = "",
                  defaultValue=None,
                  parent: QObject = None):
-        super().__init__(re=re, parent=parent)
+        super().__init__()
+        self.setParent(parent)
+        self.setRegularExpression(re)
         self._defaultValue = defaultValue
 
     @Slot(str, int, result=QValidator.State)
     def validate(self, input: str, pos: int):
-        if super().validate(input, pos) == QValidator.State.Invalid:
-            self._errorString = "Unmatch the requirements."
-        return super().validate(input, pos)[0]
+        result = super().validate(input, pos)[0]
+        if result != QValidator.State.Acceptable:
+            self._errorString = "Mismatch the requirements."
+        return result
 
-    @Slot(str,result=str)
+    @Slot(str, result=str)
     def fixup(self, input: str) -> str:
         if not self._defaultValue is None:
             return str(self._defaultValue)
         return super().fixup(input)
+
+    def __deepcopy__(self, memo):
+        if memo is None:
+            memo = {}
+        validator = self.__class__.__new__(self.__class__)
+        validator.__init__()
+        memo[id(self)] = validator
+        validator.setRegularExpression(self.regularExpression())
+        validator._defaultValue = self._defaultValue
+        return validator

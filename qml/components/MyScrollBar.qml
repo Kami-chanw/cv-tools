@@ -10,8 +10,8 @@ ScrollBar {
     visible: control.policy !== ScrollBar.AlwaysOff
 
     contentItem: Rectangle {
-        implicitWidth: 14
-        implicitHeight: 14
+        implicitWidth: 11
+        implicitHeight: 11
 
         color: "white"
         opacity: 0.0

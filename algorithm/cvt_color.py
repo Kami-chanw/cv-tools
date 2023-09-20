@@ -8,9 +8,7 @@ import numpy as np
 class CvtColor(Algorithm):
 
     def __init__(self, parent: QObject = None) -> None:
-        super().__init__(parent)
-        self.title = "Convert Color Space"
-        self.informativeText = "Convert color space to a specific one."
+        super().__init__("Convert Color Space", "Convert color space to a specific one", parent)
         self.combobox = ComboBox("Target Color Space")
         self.combobox.append("HSV", "Convert color space from BGR to HSV")
         self.combobox.append("RGB", "Convert color space from BGR to RGB")
@@ -28,3 +26,7 @@ class CvtColor(Algorithm):
             return cv.cvtColor(image, cv.COLOR_BGR2RGB)
         if self.combobox.currentValue == "Gray":
             return cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+        
+group = AlgorithmGroup("Basic Image Effects")
+group.insert(CvtColor())
+__all__ = ["group"]

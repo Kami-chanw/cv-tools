@@ -3,59 +3,120 @@
 QML_IMPORT_NAME = "CvTools"
 QML_IMPORT_MAJOR_VERSION = 1
 
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 from PySide6.QtCore import QAbstractItemModel, QObject, Property, Signal, QModelIndex, QEnum, Qt, QByteArray, Slot, \
     QAbstractListModel
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 from PySide6.QtQml import QmlElement
+from .algo_layout import *
 from enum import Enum
 from .algo_widgets import *
 import warnings
+import bisect
+import copy
 
 
 class AbstractAlgorithm(QObject):
 
-    def __init__(self, parent: QObject = None) -> None:
+    def __init__(self,
+                 title: str = None,
+                 informativeText: str | None = None,
+                 parent: QObject = None) -> None:
         super().__init__(parent)
-        self._title = None
-        self._informativeText = None
+        self._title = title
+        self._informativeText = informativeText
 
-    titleChanged = Signal()
-    title = Property(str, lambda self: self._title, notify=titleChanged)
-
-    @title.setter
-    def title(self, title: str):
-        if self._title != title:
-            self._title = title
-            self.titleChanged.emit()
-
-    informativeTextChanged = Signal()
+    title = Property(str, lambda self: self._title, constant=True)
     informativeText = Property(str,
                                lambda self: self._informativeText,
-                               notify=informativeTextChanged)
-
-    @informativeText.setter
-    def informativeText(self, text: str):
-        if self._informativeText != text:
-            self._informativeText = text
-            self.informativeTextChanged.emit()
+                               constant=True)
 
 
 class AlgorithmGroup(AbstractAlgorithm):
 
-    def __init__(self, parent: QObject = None) -> None:
-        super().__init__(parent)
-        self._algorithms = []
+    class ItemOrder(Enum):
+        KeepOrder, Sorted = range(2)
 
-    algorithms = Property(list, lambda self: self._algorithms, constant=True)
+    def __init__(self,
+                 title: str,
+                 parent: QObject = None,
+                 itemOrder=ItemOrder.Sorted) -> None:
+        super().__init__(title, None, parent)
+        self._algorithms = []
+        self.itemOrder = itemOrder
+
+    def append(self, algorithm):
+        if self.itemOrder == self.ItemOrder.Sorted:
+            raise ValueError("Cannot use append with ItemOrder.Sorted.")
+        self._algorithms.append(algorithm)
+        self._currentIndex = 0  # for iteration
+
+    @overload
+    def insert(self, index: int, algorithm) -> None:
+        ...
+
+    @overload
+    def insert(self, algorithm) -> None:
+        ...
+
+    def insert(self, *args):
+        if self.itemOrder == self.ItemOrder.Sorted:
+            if len(args) != 1:
+                raise ValueError(
+                    "insert can only be used with one argument in ItemOrder.Sorted mode"
+                )
+            algorithm = args[0]
+            index = bisect.bisect_left(self._algorithms,
+                                       algorithm.title,
+                                       key=lambda x: x._title)
+            self._algorithms.insert(index, algorithm)
+        elif self.itemOrder == self.ItemOrder.KeepOrder:
+            if len(args) != 2:
+                raise ValueError(
+                    "insert can only be used with two arguments in ItemOrder.KeepOrder mode"
+                )
+            index, algorithm = args
+            self._algorithms.insert(index, algorithm)
+        else:
+            raise ValueError("Invalid itemOrder value")
+
+    def remove(self, algorithm):
+        self._algorithms.remove(algorithm)
+
+    def index(self, algorithm):
+        return self._algorithms.index(algorithm)
+
+    def __getitem__(self, index):
+        return self._algorithms[index]
+
+    def __setitem__(self, index, algo):
+        self._algorithms[index] = algo
+
+    def __iter__(self):
+        self._currentIndex = 0
+        return self
+
+    def __next__(self):
+        if self._currentIndex >= len(self._algorithms):
+            raise StopIteration
+        else:
+            algorithm = self._algorithms[self._currentIndex]
+            self._currentIndex += 1
+            return algorithm
+
+    def __len__(self):
+        return len(self._algorithms)
 
 
 class Algorithm(AbstractAlgorithm):
-    currentValueChanged = Signal(QModelIndex)
+    currentValueChanged = Signal()
     enabledChanged = Signal()
 
-    def __init__(self, parent: QObject = None) -> None:
-        super().__init__(parent)
+    def __init__(self,
+                 title: str,
+                 informativeText: str,
+                 parent: QObject = None) -> None:
+        super().__init__(title, informativeText, parent)
         self._widgets = QStandardItemModel(self)
         self._enabled = True
 
@@ -80,27 +141,68 @@ class Algorithm(AbstractAlgorithm):
             print(item._type)
             widgets.append(item.toPlainData())
             types.append(item._type)
-        return {'title': self._title, 'informativeText': self._informativeText, 'widgets': widgets,
-                'enabled': self._enabled, 'types': types}
+        return {
+            'title': self._title,
+            'informativeText': self._informativeText,
+            'widgets': widgets,
+            'enabled': self._enabled,
+            'types': types
+        }
 
     def apply(self, image):
         return image
 
-    def indexFromWidget(self, widget: AbstractWidget):
-        for row in range(self._widgets.rowCount()):
-            if self._widgets.item(row, 0).data(Qt.DisplayRole) == widget.title:
-                return row
-        return -1
+    def __deepcopy__(self, memo):
+        if memo is None:
+            memo = {}
+        result = self.newObject()
+        memo[id(self)] = result
+        result._widgets.clear()
+        for k, v in self.__dict__.items():
+            if k == '_widgets':
+                for i in range(self._widgets.rowCount()):
+                    item = self._widgets.data(self._widgets.index(i, 0),
+                                              Qt.UserRole)
+                    if issubclass(type(item), AbstractWidget):
+                        result.addWidget(copy.deepcopy(item, memo))
+                    elif item is StackLayout:
+                        result.addLayout(copy.deepcopy(item, memo))
+            elif k.startswith("_"):
+                setattr(result, k, copy.deepcopy(v, memo))
+        return result
+
+    @Slot(result=QObject)
+    def clone(self):
+        return copy.deepcopy(self)
+
+    @Slot(result=QObject)
+    def newObject(self):
+        cls = self.__class__
+        result = cls.__new__(cls, self._title, self._informativeText)
+        result.__init__()
+        return result
 
     def addWidget(self, widget: AbstractWidget):
-
         item = QStandardItem()
         item.setData(widget, Qt.UserRole)
         item.setData(widget.title, Qt.DisplayRole)
         widget.currentValueChanged.connect(
-            lambda: self.currentValueChanged.emit(
-                self.indexFromWidget(widget)))
+            lambda: self.currentValueChanged.emit())
         self._widgets.appendRow(item)
+
+    def addLayout(self, layout):
+        if type(layout) is StackLayout:
+            item = QStandardItem()
+            item.setData(layout, Qt.UserRole)
+            for model in layout._layouts:
+                for row in range(model.rowCount()):
+                    widget: AbstractWidget = model.data(
+                        model.index(row, 0), Qt.UserRole)
+                    widget.currentValueChanged.connect(
+                        self.currentValueChanged)
+            self._widgets.appendRow(item)
+        else:
+            raise TypeError("Unsupported layout type")
 
     widgets = Property(QObject, lambda self: self._widgets, constant=True)
     enabled = Property(bool, lambda self: self._enabled, notify=enabledChanged)
@@ -120,7 +222,8 @@ class AlgorithmTreeModel(QAbstractItemModel):
 
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
-        self._rootItem = AlgorithmGroup()
+        self._rootItem = AlgorithmGroup(
+            None, itemOrder=AlgorithmGroup.ItemOrder.KeepOrder)
 
     def columnCount(self, parent: QModelIndex = None) -> int:
         return 1
@@ -129,7 +232,7 @@ class AlgorithmTreeModel(QAbstractItemModel):
         parent_item: AlgorithmGroup = self._getItem(parent)
         if not issubclass(type(parent_item), AlgorithmGroup):
             return 0
-        return len(parent_item.algorithms)
+        return len(parent_item)
 
     def data(self, index: QModelIndex, role: int = None):
         if not index.isValid():
@@ -144,28 +247,19 @@ class AlgorithmTreeModel(QAbstractItemModel):
         if not index.isValid():
             return False
         item: AbstractAlgorithm = index.internalPointer()
-        result = False
         if role == Qt.UserRole:
             parent_item = item.parent(
             )  # parent_item here must be AlgorithmGroup
-            if parent_item.algorithms[index.row()] != value:
-                if not type(parent_item.algorithms[
-                                index.row()]) is AbstractAlgorithm:
+            if parent_item[index.row()] != value:
+                if not type(parent_item[index.row()]) is AbstractAlgorithm:
                     warnings.warn(
                         f"Index at {index} already has an item, setData() will override current item.",
                         category=UserWarning)
-                parent_item.algorithms[index.row()] = value
+                parent_item[index.row()] = value
                 value.setParent(parent_item)
-                result = True
-        elif role == Qt.DisplayRole:
-            if item.title != value:
-                item.title = value
-                result = True
-
-        if result:
-            self.dataChanged.emit(index, index, [role])
-
-        return result
+                self.dataChanged.emit(index, index, [role])
+                return True
+        return False
 
     def parent(self, index: QModelIndex = QModelIndex()) -> QModelIndex:
         if not index.isValid():
@@ -175,8 +269,7 @@ class AlgorithmTreeModel(QAbstractItemModel):
         parent_item: AlgorithmGroup = child_item.parent(
         )  # parent_item here must be AlgorithmGroup
 
-        return self.createIndex(parent_item.algorithms.index(child_item), 0,
-                                parent_item)
+        return self.createIndex(parent_item.index(child_item), 0, parent_item)
 
     def index(self, row: int, column: int,
               parent: QModelIndex = QModelIndex()) -> QModelIndex:
@@ -184,8 +277,8 @@ class AlgorithmTreeModel(QAbstractItemModel):
         if not issubclass(type(parent_item), AlgorithmGroup):
             return QModelIndex()
 
-        if 0 <= row < len(parent_item.algorithms):
-            return self.createIndex(row, column, parent_item.algorithms[row])
+        if 0 <= row < len(parent_item):
+            return self.createIndex(row, column, parent_item[row])
         return QModelIndex()
 
     def insertRows(self,
@@ -197,11 +290,11 @@ class AlgorithmTreeModel(QAbstractItemModel):
         if not issubclass(type(parent_item), AlgorithmGroup):
             return False
 
-        if 0 <= row <= len(parent_item.algorithms) and count > 0:
+        if 0 <= row <= len(parent_item) and count > 0:
             self.beginInsertRows(parent, row, row + count - 1)
             for _ in range(count):
-                parent_item.algorithms.insert(row,
-                                              AbstractAlgorithm(parent_item))
+                parent_item._algorithms.insert(
+                    row, AbstractAlgorithm(parent=parent_item))
             self.endInsertRows()
             return True
         return False
@@ -214,10 +307,10 @@ class AlgorithmTreeModel(QAbstractItemModel):
         if not issubclass(type(parent_item), AlgorithmGroup):
             return False
 
-        if 0 <= row and row + count <= len(parent_item.algorithms):
+        if 0 <= row and row + count <= len(parent_item):
             self.beginRemoveRows(parent, row, row + count - 1)
             for _ in range(count):
-                parent_item.algorithms.pop(row)
+                parent_item.remove(row)
             self.endRemoveRows()
             return True
         return False
@@ -285,7 +378,7 @@ class AlgorithmListModel(QAbstractListModel):
             else:
                 if not value is None:
                     if not type(self._algorithms[
-                                    index.row()]) is AbstractAlgorithm:
+                            index.row()]) is AbstractAlgorithm:
                         warnings.warn(
                             f"Index at {index} already has an item, setData() will override current item.",
                             category=UserWarning)

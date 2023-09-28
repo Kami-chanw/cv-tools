@@ -17,15 +17,15 @@ class Blur(Algorithm):
         self.blurType.defaultValue = "Mean"
         self.addWidget(self.blurType)
 
-        def switchStackedLayout():
+        def switchStackLayout():
             index = -1
             if self.blurType.currentValue == "Mean":
                 index = 0
             elif self.blurType.currentValue == "Gaussian":
                 index = 1
-            self.stackedLayout.currentIndex = index
+            self.stackLayout.currentIndex = index
 
-        self.blurType.currentValueChanged.connect(switchStackedLayout)
+        self.blurType.currentValueChanged.connect(switchStackLayout)
 
         self.kernelSize = ComboBox("Kernel Size",
                                    "The size of convolution kernel")
@@ -70,25 +70,25 @@ class Blur(Algorithm):
         self.sigma.validator = RegularExpressionValidator(
             r'^-?\d+(\.\d+)?,-?\d+(\.\d+)?$', "0,0", self.sigma)
 
-        self.stackedLayout = StackLayout()
-        self.stackedLayout.addLayout([self.anchor])
-        self.stackedLayout.addLayout([self.sigma])
+        self.stackLayout = StackLayout()
+        self.stackLayout.addLayout([self.anchor])
+        self.stackLayout.addLayout([self.sigma])
 
-        self.addLayout(self.stackedLayout)
+        self.addLayout(self.stackLayout)
 
     def apply(self, image):
         ksize = int(self.kernelSize.currentValue[0])
         if self.blurType.currentValue == 'Mean':
             x, y = self.anchor.currentValue.split(",")
-            imgBlur = cv2.blur(image, (ksize, ksize), anchor=(int(x), int(y)))
+            image = cv2.blur(image, (ksize, ksize), anchor=(int(x), int(y)))
         elif self.blurType.currentValue == 'Median':
-            imgBlur = cv2.medianBlur(image, ksize)
+            image = cv2.medianBlur(image, ksize)
         else:
             x, y = self.sigma.currentValue.split(",")
-            imgBlur = cv2.GaussianBlur(image, (ksize, ksize),
+            image = cv2.GaussianBlur(image, (ksize, ksize),
                                        sigmaX=float(x),
                                        sigmaY=float(y))
-        return imgBlur
+        return image
 
 
 group = AlgorithmGroup("Basic Image Effects")

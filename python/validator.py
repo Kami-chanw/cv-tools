@@ -147,7 +147,7 @@ class RegularExpressionValidator(QRegularExpressionValidator, ValidatorExtend):
     def validate(self, input: str, pos: int):
         result = super().validate(input, pos)[0]
         if result != QValidator.State.Acceptable:
-            self._errorString = "Mismatch the requirements."
+            self.errorString = "Invalid input"
         return result
 
     @Slot(str, result=str)

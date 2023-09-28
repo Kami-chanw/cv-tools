@@ -37,6 +37,7 @@ build-*/
 
 # qtcreator generated files
 *.pro.user*
+*.pyproject.user*
 *.user
 CMakeLists.txt.user*
 

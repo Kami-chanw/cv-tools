@@ -1,7 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>assets/icons/arrow.svg</file>
-        <file>assets/icons/connect.svg</file>
         <file>assets/icons/file_manager.svg</file>
         <file>assets/icons/testbed.svg</file>
         <file>assets/icons/settings.svg</file>
@@ -11,5 +9,6 @@
         <file>assets/icons/question.svg</file>
         <file>assets/icons/check.svg</file>
         <file>test/106005131_p0_master1200.jpg</file>
+        <file>assets/icons/ellipsis.svg</file>
     </qresource>
 </RCC>

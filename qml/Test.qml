@@ -2,8 +2,9 @@ import QtQuick
 import KmcUI
 import KmcUI.Controls
 import QtQuick.Controls.Basic
-import QtQuick.Shapes
-import "./components"
+import QtQuick.Layouts
+import "./controls"
+import "./algo_controls"
 import QtQuick.Effects
 import CvTools
 
@@ -12,76 +13,34 @@ Window {
     width: 400
     height: 400
     visible: true
-    color: "#181818"
-    Component {
-        id: dele
-        Rectangle {
-            color: "#1f1f1f"
+    color: "#fff"
 
-            Text {
-                anchors.centerIn: parent
-                text: "hello"
-                color: "#cccccc"
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
+    Button {
+        height: 20
+        width: 40
+        anchors.centerIn: parent
+        text: "example"
+        background: Rectangle {
+            color: "#cdcdcd"
+        }
+        BubbleToolTip {
+            id: tooltip
+            text: "example toolip"
+            shadowBlur: 3
+            arrow.position: 10
+            border.color: "#454545"
+            palette {
+                toolTipBase: "#202020"
+                toolTipText: "#c2c2c2"
+                shadow:"#000"
             }
         }
-    }
 
-    ShaderEffectSource {
-        id: dragTarget
-        sourceItem: loader
-        width: 200
-        height: 200
-        anchors {
-            top: parent.top
-            left: parent.left
-        }
-        Drag.active: dragHandler.active
-        opacity: dragHandler.active ? 0.7 : 0
-        z: dragHandler.active ? 1 : 0
-
-        DragHandler {
-            id: dragHandler
-            onActiveChanged: {
-                if (active) {
-                    tapHandler.pressX = tapHandler.point.position.x
-                    tapHandler.pressY = tapHandler.point.position.y
-                }
+        HoverHandler {
+            onHoveredChanged: {
+                if (hovered)
+                    tooltip.open()
             }
         }
-        PointHandler {
-            id: tapHandler
-            property int pressX
-            property int pressY
-        }
-
-        states: [
-            State {
-                when: dragHandler.active
-                AnchorChanges {
-                    target: dragTarget
-                    anchors {
-                        left: undefined
-                        top: undefined
-                    }
-                }
-            }
-        ]
-    }
-    Loader {
-        id: loader
-        width: 200
-        height: 200
-        anchors {
-            top: parent.top
-            left: parent.left
-        }
-
-        sourceComponent: dele
-    }
-    MouseArea {
-        anchors.fill: parent
-        hoverEnabled: true
     }
 }

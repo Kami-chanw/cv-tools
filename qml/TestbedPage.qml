@@ -2,7 +2,7 @@
 import KmcUI.Effects
 import QtQuick.Controls
 import CvTools
-import "./components"
+import "./controls"
 
 Item {
     id: root

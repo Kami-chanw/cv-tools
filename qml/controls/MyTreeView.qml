@@ -1,5 +1,4 @@
 ﻿import QtQuick
-import KmcUI.Controls 1.0
 import QtQuick.Controls
 
 TreeView {

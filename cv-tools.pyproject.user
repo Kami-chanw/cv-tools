@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 11.0.2, 2023-09-20T11:12:30. -->
+<!-- Written by QtCreator 11.0.2, 2023-09-29T02:01:34. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -148,7 +148,8 @@
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">C:/Users/ASUS/Documents/Qt Project/cv-tools/main.py</value>
     <value type="QString" key="PythonEditor.RunConfiguation.Script">C:\Users\ASUS\Documents\Qt Project\cv-tools\main.py</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
-    <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
+    <value type="int" key="RunConfiguration.UseQmlDebugger">0</value>
+    <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">false</value>
     <value type="QString" key="RunConfiguration.WorkingDirectory.default">C:/Users/ASUS/Documents/Qt Project/cv-tools</value>
    </valuemap>
    <value type="qlonglong" key="ProjectExplorer.Target.RunConfigurationCount">1</value>

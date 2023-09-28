@@ -1,7 +1,7 @@
 ﻿import QtQuick
 import QtQuick.Controls
 import QtCore
-import "./components"
+import "./controls"
 import KmcUI.Controls
 import KmcUI
 

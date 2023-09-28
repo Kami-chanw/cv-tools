@@ -1,29 +1,29 @@
 import QtQuick
 import QtQuick.Controls
 import CvTools
-import "./components"
-import "./algo_components"
+import "../controls"
+import "../algo_controls"
 
 Flickable {
-    id: control
-    property alias model: list.model
+    id: root
+    required property var model
     required property var imageMouseArea
     HoverHandler {
         id: hoverHandler
     }
-
     property alias hovered: hoverHandler.hovered
     ScrollBar.vertical: MyScrollBar {}
     ScrollBar.horizontal: MyScrollBar {}
-    contentHeight: Math.min(500, list.height)
+    contentHeight: Math.max(240, list.height)
     contentWidth: list.width
     boundsBehavior: Flickable.StopAtBounds
 
-    height: Math.min(500, list.height)
+    height: Math.max(240, list.height)
 
     AlgoList {
         id: list
-        imageMouseArea: control.imageMouseArea
-        width: control.width
+        model: root.model
+        imageMouseArea: root.imageMouseArea
+        width: root.width
     }
 }

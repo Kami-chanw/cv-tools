@@ -9,6 +9,7 @@ import KmcUI.Effects
 import Qt.labs.folderlistmodel
 import Qt.labs.settings
 import QtCore
+import "./controls"
 import "./components"
 import CvTools
 
@@ -20,6 +21,7 @@ ShadowWindow {
     minimumWidth: 850
     minimumHeight: 400
     objectName: "MainForm"
+    dragBehavior: ShadowWindow.DragTitle
 
     readonly property string appName: "CV Tools"
 
@@ -64,6 +66,14 @@ ShadowWindow {
             backgroundRect.radius: 0
         }
     }
+    statusBar: KmcRectangle {
+        topBorder.color: "#2b2b2b"
+        color: "#181818"
+        height: 22
+        leftBottomRadius: backgroundRect.radius
+        rightBottomRadius: leftBottomRadius
+    }
+
     width: mainFormSettings.windowSize.width
     height: mainFormSettings.windowSize.height
 
@@ -109,12 +119,10 @@ ShadowWindow {
     Component {
         id: algoAction
         Action {
-            required property var index
+            required property var algorithm
             onTriggered: {
-                var algorithm = algorithmTreeModel.data(index, Qt.UserRole)
                 sessionData.algoModel[Number(sessionData.isClonedView
-                                             && !algoList.activeFocus)].append(
-                            algorithm.newObject())
+                                             && !algoList.activeFocus)].append(algorithm)
             }
         }
     }
@@ -137,7 +145,8 @@ ShadowWindow {
                                                                    currentIndex, Qt.DisplayRole),
                                                        "enabled": Qt.binding(
                                                                       () => !!root.sessionData),
-                                                       "index": currentIndex
+                                                       "algorithm": algorithmTreeModel.data(
+                                                                        currentIndex, Qt.UserRole)
                                                    })
                 parent.addAction(algo)
             }
@@ -312,6 +321,15 @@ ShadowWindow {
                     }
                 }
 
+                Action {
+                    text: qsTr("Close Session")
+                    enabled: !!root.sessionData
+                    onTriggered: {
+                        root.sessionData = null
+                        stackLayout.switchTo(MainForm.PageType.Welcome)
+                    }
+                }
+
                 MyMenuSeparator {}
 
                 Action {
@@ -330,6 +348,16 @@ ShadowWindow {
                     enabled: !!root.sessionData
                     onTriggered: {
                         root.sessionData.isClonedView = !root.sessionData.isClonedView
+                    }
+                }
+
+                Action {
+                    text: "Fixed Image"
+                    checkable: true
+                    checked: true
+                    enabled: !!root.sessionData
+                    onTriggered: {
+
                     }
                 }
             },
@@ -400,11 +428,11 @@ ShadowWindow {
             tooltip: qsTr("Testbed (Ctrl+1)")
             shortcut: "Ctrl+1"
             activate: () => {
-                          appBarContent.shouldCollapse = false
-                          if (appBarContent.SplitView.preferredWidth < 150) {
-                              appBarContent.SplitView.preferredWidth = 200
+                          sidePage.shouldCollapse = false
+                          if (sidePage.SplitView.preferredWidth < 150) {
+                              sidePage.SplitView.preferredWidth = 200
                           }
-                          appBarContent.switchTo(MainForm.AppBarType.Testbed)
+                          sidePage.switchTo(MainForm.AppBarType.Testbed)
                           stackLayout.switchTo(MainForm.PageType.Testbed)
                       }
         }
@@ -414,11 +442,11 @@ ShadowWindow {
             tooltip: qsTr("File manager (Ctrl+2)")
             shortcut: "Ctrl+2"
             activate: () => {
-                          appBarContent.shouldCollapse = false
-                          if (appBarContent.SplitView.preferredWidth < 150) {
-                              appBarContent.SplitView.preferredWidth = 200
+                          sidePage.shouldCollapse = false
+                          if (sidePage.SplitView.preferredWidth < 150) {
+                              sidePage.SplitView.preferredWidth = 200
                           }
-                          appBarContent.switchTo(MainForm.AppBarType.FileSystem)
+                          sidePage.switchTo(MainForm.AppBarType.FileSystem)
                           stackLayout.switchTo(MainForm.PageType.Testbed)
                       }
         }
@@ -428,23 +456,12 @@ ShadowWindow {
             tooltip: qsTr("Settings (Ctrl+3)")
             shortcut: "Ctrl+3"
             activate: () => {
-                          appBarContent.shouldCollapse = true
+                          sidePage.shouldCollapse = true
                           stackLayout.switchTo(MainForm.PageType.Setting)
                       }
             deactivate: () => {
-                            appBarContent.shouldCollapse = false
+                            sidePage.shouldCollapse = false
                         }
-        }
-    }
-
-    ListModel {
-        id: bottomAppItems
-        ListElement {
-            name: "Link"
-            icon: "qrc:/assets/icons/connect.svg"
-            tooltip: qsTr("Connect (F5)")
-            shortcut: "F5"
-            activate: () => {}
         }
     }
 
@@ -470,22 +487,14 @@ ShadowWindow {
                 onAboutToSwitch: (currentIndex, nextIndex) => {
                                      if (nextIndex === MainForm.AppBarType.None
                                          && currentIndex !== MainForm.AppBarType.Setting)
-                                     appBarContent.lastIndex = currentIndex
+                                     sidePage.lastIndex = currentIndex
                                  }
 
                 onCurrentIndexChanged: {
                     if (currentIndex < 0 && !splitView.resizing) {
-                        appBarContent.shouldCollapse = true
+                        sidePage.shouldCollapse = true
                     }
                 }
-            }
-
-            MyAppBar {
-                anchors.bottomMargin: 10
-                model: bottomAppItems
-                width: parent.width
-                behavior: MyAppBar.Click
-                layoutDirection: Qt.RightToLeft
             }
         }
 
@@ -498,16 +507,19 @@ ShadowWindow {
                 right: parent.right
             }
 
-            Rectangle {
-                id: appBarContent
+            SidePage {
+                id: sidePage
                 SplitView.preferredWidth: 200
                 property int lastIndex: MainForm.AppBarType.None
                 property bool shouldCollapse: false
+                imageMouseArea: testbedPageLoader.item?.imageMouseArea
+                algoModel: root.sessionData?.algoModel[0]
                 color: "#181818"
                 clip: true
+                title: topAppItems.get(sidePage.stackLayout.currentIndex).name
 
-                function switchTo(appBarContentType) {
-                    appBarContentStack.currentIndex = appBarContentType
+                function switchTo(sidePageType) {
+                    sidePage.stackLayout.currentIndex = sidePageType
                 }
                 SplitView.onPreferredWidthChanged: {
                     if (splitView.resizing && !shouldCollapse) {
@@ -526,41 +538,8 @@ ShadowWindow {
                 }
 
                 Binding {
-                    when: appBarContent.shouldCollapse
-                    appBarContent.SplitView.maximumWidth: 0
-                }
-
-                Item {
-                    id: appBarContentTitle
-                    anchors {
-                        left: parent.left
-                        right: parent.right
-                        top: parent.top
-                    }
-                    height: 30
-                    Text {
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.leftMargin: 16
-                        color: "#cccccc"
-                        text: topAppItems.get(appBarContentStack.currentIndex).name
-                    }
-                }
-
-                StackLayout {
-                    id: appBarContentStack
-                    anchors {
-                        left: parent.left
-                        right: parent.right
-                        top: appBarContentTitle.bottom
-                        bottom: parent.bottom
-                    }
-
-                    MyToolBox {
-                        id: algoList
-                        model: sessionData?.algoModel[0]
-                        imageMouseArea: testbedPageLoader.item?.imageMouseArea
-                    }
+                    when: sidePage.shouldCollapse
+                    sidePage.SplitView.maximumWidth: 0
                 }
             }
 

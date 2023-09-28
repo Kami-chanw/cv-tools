@@ -1,6 +1,7 @@
 ﻿import QtQuick
 import KmcUI.Controls
 import QtQuick.Effects
+import KmcUI
 
 AppBar {
     palette {
@@ -14,7 +15,7 @@ AppBar {
         height: 26
         color: "#8c8c8c"
     }
-    toolTip: MyToolTip {
-
+    toolTip: MyBubbleToolTip{
+        location:KmcUI.Right
     }
 }

@@ -1,13 +1,14 @@
 import QtQuick
 import CvTools
-import "../components"
+import "../controls"
 
 Column {
     id: control
-    property alias model: repeater.model
+    required property var model
     required property var imageMouseArea
     Repeater {
         id: repeater
+        model: control.model
         delegate: Rectangle {
             id: content
             implicitHeight: contentColumn.height
@@ -30,27 +31,41 @@ Column {
                 }
             ]
             onCurrentWidgetChanged: {
-                if (!content.currentWidget)
+                if (!currentWidget)
                     return
-                let source
-                switch (content.currentWidget.type) {
+                switch (currentWidget.type) {
                 case Enums.WidgetType.ComboBox:
-                    source = "./AlgoComboBox.qml"
-                    break
+                    loader.setSource("./AlgoComboBox.qml", {
+                                         "widget": currentWidget,
+                                         "model": currentWidget.labelModel,
+                                         "currentIndex": currentWidget.defaultIndex
+                                     })
+                    return
                 case Enums.WidgetType.Slider:
-                    source = "./AlgoSlider.qml"
-                    break
+                    loader.setSource("./AlgoSlider.qml", {
+                                         "widget": currentWidget,
+                                         "value": currentWidget.defaultValue
+                                                  ?? (currentWidget.minimum + currentWidget.maximum) / 2
+                                     })
+                    return
                 case Enums.WidgetType.LineEdit:
-                    source = "./AlgoLineEdit.qml"
-                    break
+                    loader.setSource("./AlgoLineEdit.qml", {
+                                         "widget": currentWidget,
+                                         "fullText": currentWidget.currentValue
+                                     })
+                    return
                 case Enums.WidgetType.CheckBox:
-                    source = "./AlgoCheckBox.qml"
+                    loader.setSource("./AlgoCheckBox.qml", {
+                                         "widget": currentWidget,
+                                         "checked": !!currentWidget.defaultValue
+                                     })
                     break
                 case Enums.WidgetType.StackLayout:
                     loader.setSource("./AlgoStackLayout.qml", {
                                          "layout": currentWidget,
                                          "imageMouseArea": control.imageMouseArea,
-                                         "width": Qt.binding(() => control.width)
+                                         "width": Qt.binding(() => control.width),
+                                         "currentIndex": currentWidget.currentIndex
                                      })
                     return
                 case Enums.WidgetType.Selector:
@@ -62,9 +77,6 @@ Column {
                 default:
                     return
                 }
-                loader.setSource(source, {
-                                     "widget": currentWidget
-                                 })
             }
             z: hh.hovered ? 1 : 0
             HoverHandler {

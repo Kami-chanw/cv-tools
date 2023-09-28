@@ -6,7 +6,7 @@ CheckBox {
     id: control
     required property var widget
     text: widget?.text
-    Component.onCompleted: checked = Boolean(widget?.defaultValue)
+
     onCheckedChanged: widget.currentValue = checked
     contentItem: Text {
         text: control.text

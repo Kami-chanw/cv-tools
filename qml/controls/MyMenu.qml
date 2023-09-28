@@ -39,20 +39,39 @@ Menu {
         implicitWidth: control.implicitWidth
         implicitHeight: 30
 
-        function textColor() {
-            if (menuItem.enabled === false)
+        property color textColor: {
+            if (!menuItem.enabled)
                 return control.palette.disabled.text
             return menuItem.highlighted ? control.palette.text : control.palette.inactive.text
+        }
+
+        indicator: Canvas {
+            x: 5
+            implicitWidth: menuItem.height - 9
+            implicitHeight: menuItem.height - 9
+            anchors.verticalCenter: parent.verticalCenter
+            visible: menuItem.checked
+            contextType: "2d"
+            onPaint: {
+                var ctx = getContext("2d")
+                ctx.strokeStyle = control.palette.text
+                ctx.moveTo(width * 0.22, height * 0.5)
+                ctx.lineTo(width * 0.38, 0.72 * height)
+                ctx.lineTo(width * 0.72, height * 0.33)
+                ctx.stroke()
+            }
         }
 
         arrow: Canvas {
             x: parent.width - width - 6
             implicitWidth: menuItem.height
             implicitHeight: menuItem.height
+            anchors.verticalCenter: parent.verticalCenter
             visible: menuItem.subMenu
+            contextType: "2d"
             onPaint: {
                 var ctx = getContext("2d")
-                ctx.strokeStyle = menuItem.textColor()
+                ctx.strokeStyle = textColor
                 const leftTop = width * 0.35
                 const right = width * 0.5
                 ctx.moveTo(leftTop, leftTop)
@@ -69,7 +88,7 @@ Menu {
                 anchors.left: parent.left
                 text: menuItem.text
                 font: menuItem.font
-                color: menuItem.textColor()
+                color: textColor
                 horizontalAlignment: Text.AlignLeft
                 verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideRight
@@ -80,7 +99,7 @@ Menu {
                 rightPadding: menuItem.arrow.width
                 text: menuItem.action?.shortcut?.toString() ?? ""
                 font: menuItem.font
-                color: menuItem.textColor()
+                color: textColor
                 horizontalAlignment: Text.AlignRight
                 verticalAlignment: Text.AlignVCenter
             }

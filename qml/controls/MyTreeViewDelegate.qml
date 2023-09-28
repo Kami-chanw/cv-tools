@@ -1,8 +1,8 @@
 ﻿import QtQuick
-import KmcUI.Controls 1.0
+import QtQuick.Controls
 import KmcUI
 
-KmcTreeViewDelegate {
+TreeViewDelegate {
     background: Item {
         implicitHeight: 22
         Rectangle {

@@ -155,7 +155,7 @@ class Algorithm(AbstractAlgorithm):
     def __deepcopy__(self, memo):
         if memo is None:
             memo = {}
-        result = self.newObject()
+        result = self.newInstance()
         memo[id(self)] = result
         result._widgets.clear()
         for k, v in self.__dict__.items():
@@ -176,7 +176,7 @@ class Algorithm(AbstractAlgorithm):
         return copy.deepcopy(self)
 
     @Slot(result=QObject)
-    def newObject(self):
+    def newInstance(self):
         cls = self.__class__
         result = cls.__new__(cls, self._title, self._informativeText)
         result.__init__()
@@ -337,6 +337,8 @@ class AlgorithmListModel(QAbstractListModel):
         self._algorithms = []
         self.rowsMoved.connect(self.updateRequired)
         self.rowsRemoved.connect(self.updateRequired)
+        self.rowsInserted.connect(self.countChanged)
+        self.rowsRemoved.connect(self.countChanged)
 
     @classmethod
     def load(cls, data: dict):
@@ -445,8 +447,12 @@ class AlgorithmListModel(QAbstractListModel):
         return False
 
     # Qml ListModel compatibility
+    countChanged = Signal()
+    count = Property(int, lambda self: len(self._algorithms), notify=countChanged)
 
-    count = Property(int, lambda self: len(self._algorithms))
+    @Slot()
+    def clear(self):
+        self.removeRows(0, self.count)
 
     @Slot(int, result=Algorithm)
     def get(self, index):

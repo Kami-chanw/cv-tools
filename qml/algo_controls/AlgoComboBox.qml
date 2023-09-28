@@ -5,24 +5,31 @@ import KmcUI
 ComboBox {
     id: control
     required property var widget
-    model: widget?.labelModel
     textRole: "display"
-    Component.onCompleted: currentIndex = widget.defaultIndex
     onCurrentTextChanged: {
         if (currentText)
             widget.currentValue = currentText
     }
 
-    indicator: ColorIcon {
+    indicator: Canvas {
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
         anchors.rightMargin: 7
-        source: "qrc:/assets/icons/arrow.svg"
         rotation: 90
-        height: 13
-        width: 13
-        color: "#BABABA"
+        height: 19
+        width: height
+        onPaint: {
+            var ctx = getContext("2d")
+            ctx.strokeStyle = "#dedfdf"
+            const startX = 0.375 * width
+            const startY = 0.25 * height
+            ctx.moveTo(startX, startY)
+            ctx.lineTo(width * 0.625, height / 2)
+            ctx.lineTo(startX, height - startY)
+            ctx.stroke()
+        }
     }
+
     delegate: ItemDelegate {
         width: control.width - 2
         implicitHeight: 25

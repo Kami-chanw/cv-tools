@@ -5,10 +5,11 @@ StackLayout {
     id: control
     required property var layout
     required property var imageMouseArea
-    Component.onCompleted: currentIndex = layout.currentIndex
+
     onCurrentIndexChanged: {
-        if (control.currentIndex !== layout.currentIndex)
+        if (layout && control.currentIndex !== layout.currentIndex)
             layout.currentIndex = currentIndex
+        control.height = currentIndex === -1 ? 0 : undefined
     }
     Connections {
         target: control.layout
@@ -20,16 +21,18 @@ StackLayout {
 
     Repeater {
         id: repeater
-        model: control.layout.layouts.length
+        model: control.layout?.layouts
         delegate: Loader {
             id: loader
             Layout.fillWidth: true
-            property var model: control.layout.layouts[index]
+            property var model: control.layout?.layouts[index]
             onModelChanged: {
-                loader.setSource("./AlgoList.qml", {
-                                     "model": loader.model,
-                                     "imageMouseArea": control.imageMouseArea
-                                 })
+                if (loader.model) {
+                    loader.setSource("./AlgoList.qml", {
+                                         "model": loader.model,
+                                         "imageMouseArea": control.imageMouseArea
+                                     })
+                }
             }
         }
     }

@@ -7,10 +7,15 @@ ToolBox {
     id: control
     ScrollBar.vertical: MyScrollBar {}
     ScrollBar.horizontal: MyScrollBar {}
-    dropAreaItem: Rectangle {
-        color: "#cccccc"
-        opacity: 0.15
+    toggle: Transition {
+        NumberAnimation {
+            id: collapseAnim
+            property: "height"
+            easing.type: Easing.InOutQuad
+            duration: 100
+        }
     }
+
     property var imageMouseArea
     property alias hovered: hoverHandler.hovered
     HoverHandler {
@@ -19,7 +24,7 @@ ToolBox {
 
     sourceSelector: index => {
                         return {
-                            "source": Qt.resolvedUrl(".") + "../AlgoListItem.qml",
+                            "source": Qt.resolvedUrl(".") + "../components/AlgoListItem.qml",
                             "properties": {
                                 "model": control.model.get(index).widgets,
                                 "imageMouseArea": control.imageMouseArea
@@ -30,7 +35,7 @@ ToolBox {
         id: boxDelegate
         implicitHeight: 22
         rightPadding: 4
-        Component.onCompleted: toggleContent()
+        expanded: true
         contentItem: Item {
             Text {
                 anchors {
@@ -50,7 +55,7 @@ ToolBox {
                 id: row
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                anchors.rightMargin: 10
+                anchors.rightMargin: 3
                 spacing: 3
                 visible: boxDelegate.hovered
                 MyIconButton {
@@ -77,27 +82,37 @@ ToolBox {
             }
         }
 
-        background: Item {
-            Rectangle {
-                anchors.fill: parent
-                anchors.rightMargin: border.width
-                anchors.leftMargin: border.width
-                color: "#1F1F1F"
-                border.color: boxDelegate.highlighted ? "#0078D4" : "transparent"
-            }
+        background: Rectangle {
+            anchors.fill: parent
+            color: "#1F1F1F"
+            border.color: boxDelegate.highlighted ? "#0078D4" : "transparent"
         }
 
         indicator: Item {
             implicitHeight: 22
             implicitWidth: 22
 
-            ColorIcon {
+            Canvas {
                 anchors.centerIn: parent
-                source: "qrc:/assets/icons/arrow.svg"
+                width: 19
+                height: width
                 rotation: boxDelegate.expanded ? 90 : 0
-                height: 13
-                width: 13
-                color: "#CCCCCC"
+                onPaint: {
+                    var ctx = getContext("2d")
+                    ctx.strokeStyle = "#dedfdf"
+                    const startX = 0.375 * width
+                    const startY = 0.25 * height
+                    ctx.moveTo(startX, startY)
+                    ctx.lineTo(width * 0.625, height / 2)
+                    ctx.lineTo(startX, height - startY)
+                    ctx.stroke()
+                }
+                Behavior on rotation {
+                    NumberAnimation {
+                        easing.type: Easing.InOutQuad
+                        duration: collapseAnim.duration
+                    }
+                }
             }
         }
     }

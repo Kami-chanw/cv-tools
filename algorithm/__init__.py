@@ -53,5 +53,4 @@ for filename in os.listdir(os.path.dirname(__file__)):
 
 algorithmTreeModel = AlgorithmTreeModel()
 algorithmTreeModel._rootItem = _algorithmTree
-algorithmTreeModel.data(algorithmTreeModel.index(0,0,algorithmTreeModel.index(0,0)), Qt.DisplayRole)
 __all__ = ["algorithmTreeModel"]

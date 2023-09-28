@@ -10,11 +10,11 @@ QML_PATH = Path(__file__).resolve().parent / "qml"
 sys.path.append(str(KMCUI_PATH.parent))
 from KmcUI import *
 from KmcUI.PyKmc.models import TreeModel, TreeNode
-from resources import *
+from rc_resources import *
 from python.image_loader import *
 from python.bridge import *
 from python.validator import IntValidator
-from algorithm import algorithmTreeModel
+from algorithm import algorithmTreeModel, blur
 from python.algo_widgets import *
 
 if __name__ == "__main__":
@@ -23,13 +23,13 @@ if __name__ == "__main__":
     QGuiApplication.setOrganizationDomain("seu.cvtools")
     app.setWindowIcon(QIcon("assets/logo.svg"))
     imageProvider = ImageProvider()
-
+#    b = blur.Blur()
     engine = QQmlApplicationEngine()
     engine.addImageProvider(imageProvider.providerId(), imageProvider)
 
 #    sessionData = SessionData(Path(r"C:\Users\ASUS\Pictures\Saved Pictures\418f33056a268843700fe3d605d5a2e84ff0f3ed.jpg@1320w_1036h.jpg"))
-#    sessionData.algoModel[0].append(
-#         algorithmTreeModel.data(algorithmTreeModel.index(0, 0, algorithmTreeModel.index(0, 0)), Qt.UserRole))
+#    for i in range(10):
+#        sessionData.algoModel[0].append(b.newInstance())
 #     engine = QQmlApplicationEngine()
 #     engine.addImageProvider(imageProvider.providerId(), imageProvider)
 #    engine.rootContext().setContextProperty("fakeModel", sessionData.algoModel[0])

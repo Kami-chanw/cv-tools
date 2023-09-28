@@ -13,9 +13,9 @@ TextField {
     font.pointSize: 8
     property string fullText
     required property var widget
+
     placeholderText: widget?.placeholderText ?? ""
     maximumLength: widget?.maximumLength ?? -1
-    Component.onCompleted: fullText = widget.currentValue
 
     selectByMouse: true
     background: Rectangle {
@@ -27,6 +27,11 @@ TextField {
     }
 
     text: activeFocus ? fullText : metrics.elidedText
+
+    Binding {
+        control.text: activeFocus ? fullText : metrics.elidedText
+    }
+
     Popup {
         id: errorRect
         x: control.x
@@ -52,18 +57,19 @@ TextField {
             wrapMode: Text.WordWrap
         }
     }
-
     Connections {
         function onTextChanged() {
             if (control.text !== metrics.elidedText)
                 control.fullText = control.text
-            errorRect.visible = Number(widget.validator.validate(
-                                           control.fullText,
-                                           control.cursorPosition)) !== Enums.State.Acceptable
+            if (!!widget.validator)
+                errorRect.visible = Number(widget.validator.validate(
+                                               control.fullText,
+                                               control.cursorPosition)) !== Enums.State.Acceptable
         }
         function onEditingFinished() {
-            if (Number(widget.validator.validate(
-                           control.fullText, control.cursorPosition)) !== Enums.State.Acceptable)
+            if (!!widget.validator && Number(
+                        widget.validator.validate(
+                            control.fullText, control.cursorPosition)) !== Enums.State.Acceptable)
                 control.fullText = widget.validator.fixup(control.fullText)
             widget.currentValue = control.fullText
         }

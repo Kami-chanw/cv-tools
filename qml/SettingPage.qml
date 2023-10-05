@@ -82,11 +82,11 @@ Item {
             bottom: parent.bottom
         }
         width: 800
-        MyTreeView {
+        TreeView {
             SplitView.minimumWidth: 50
             SplitView.maximumWidth: 200
 
-            delegate: MyTreeViewDelegate {
+            delegate: TreeViewDelegate {
 
                 contentItem: Text {
                     color: selected ? "white" : hovered ? "#ACACAC" : "#BABABA"

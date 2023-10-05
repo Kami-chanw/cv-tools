@@ -17,5 +17,6 @@ AppBar {
     }
     toolTip: MyBubbleToolTip{
         location:KmcUI.Right
+
     }
 }

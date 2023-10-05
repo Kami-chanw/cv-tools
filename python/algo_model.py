@@ -177,10 +177,7 @@ class Algorithm(AbstractAlgorithm):
 
     @Slot(result=QObject)
     def newInstance(self):
-        cls = self.__class__
-        result = cls.__new__(cls, self._title, self._informativeText)
-        result.__init__()
-        return result
+        return self.__class__()
 
     def addWidget(self, widget: AbstractWidget):
         item = QStandardItem()

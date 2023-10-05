@@ -30,17 +30,21 @@ class Enums(QObject):
 class SessionData(QObject):
     nameChanged = Signal()
     frameChanged = Signal(int)
-    isClonedViewChanged = Signal()
+    isContrastViewChanged = Signal()
     errorStringChanged = Signal()
+    isFixedViewChanged = Signal()
 
     def __init__(self, path: WindowsPath, parent=None) -> None:
         super().__init__(parent)
 
-        self._isClonedView = False
+        self._isContrastView = False
         self._errorString = None
         self._algoModel = [AlgorithmListModel(self), AlgorithmListModel(self)]
-        self._algoModel[0].updateRequired.connect(lambda :self.applyAlgorithms(0))
-        # self._algoModel[1].updateRequired.connect(lambda :self.applyAlgorithms(1))
+        self._algoModel[0].updateRequired.connect(
+            lambda: self.applyAlgorithms(0))
+        self._algoModel[1].updateRequired.connect(
+            lambda: self.applyAlgorithms(1))
+        self._isFixedView = True
 
         self._sessionPath = None
 
@@ -60,13 +64,15 @@ class SessionData(QObject):
         elif path.suffix == ".cvsession":
             with open(path, 'rb') as f:
                 data = pickle.load(f)
-                # only self._isClonedView, self._algoGroup, self._sessionPath can be detected
+                # only self._isContrastView, self._algoGroup, self._sessionPath can be detected
 
                 for name, value in vars(self).items():
                     if name.startswith('_'):
                         if name == '_algoModel':
-                            self._algoModel = [AlgorithmListModel.load(data['_algoModel'][0]),
-                                               AlgorithmListModel.load(data['_algoModel'][1])]
+                            self._algoModel = [
+                                AlgorithmListModel.load(data['_algoModel'][0]),
+                                AlgorithmListModel.load(data['_algoModel'][1])
+                            ]
                         else:
                             value = data[name]
 
@@ -100,11 +106,11 @@ class SessionData(QObject):
         return img_data
 
     def _cv2qt(self, cv_img):
-        if len(cv_img.shape) == 2:  # 灰度图像
+        if len(cv_img.shape) == 2:
             height, width = cv_img.shape
             bytes_per_line = width
             image_format = QImage.Format_Grayscale8
-        elif len(cv_img.shape) == 3:  # 彩色图像
+        elif len(cv_img.shape) == 3:
             height, width, channel = cv_img.shape
             bytes_per_line = 3 * width
             image_format = QImage.Format_RGB888
@@ -131,35 +137,48 @@ class SessionData(QObject):
                 try:
                     currentFrame = algo.apply(currentFrame)
                     if currentFrame is None:
-                        raise ValueError(f"Faild to apply alogorithm {algo.title}")
+                        raise ValueError(
+                            f"Faild to apply alogorithm {algo.title}")
                 except Exception as e:
                     self.errorString = str(e)
                     return
         self.setFrame(index, self._cv2qt(currentFrame))
 
-    fileName = Property(str, lambda self: self._filePath.name)
+    fileName = Property(str, lambda self: self._filePath.name, constant=True)
     algoModel = Property(list, lambda self: self._algoModel, constant=True)
     type = Property(TaskType, lambda self: self._type, constant=True)
     name = Property(str, lambda self: self._name, constant=True)
-    isClonedView = Property(bool,
-                            lambda self: self._isClonedView,
-                            notify=isClonedViewChanged)
+    isContrastView = Property(bool,
+                            lambda self: self._isContrastView,
+                            notify=isContrastViewChanged)
+    isFixedView = Property(bool,
+                           lambda self: self._isFixedView,
+                           notify=isFixedViewChanged)
     sessionPath = Property(str, lambda self: self._sessionPath, constant=True)
-    errorString = Property(str, lambda self:self._errorString, notify=errorStringChanged)
-    imageSize = Property(QSize, lambda self: self._origin_image.size(), constant=True)
+    errorString = Property(str,
+                           lambda self: self._errorString,
+                           notify=errorStringChanged)
+    imageSize = Property(QSize,
+                         lambda self: self._origin_image.size(),
+                         constant=True)
 
-    @isClonedView.setter
-    def isClonedView(self, value):
-        if self._isClonedView != value:
-            self._isClonedView = value
-            self.isClonedViewChanged.emit()
-    
+    @isContrastView.setter
+    def isContrastView(self, value):
+        if self._isContrastView != value:
+            self._isContrastView = value
+            self.isContrastViewChanged.emit()
+
     @errorString.setter
     def errorString(self, errorString):
         if self._errorString != errorString:
             self._errorString = errorString
             self.errorStringChanged.emit()
 
+    @isFixedView.setter
+    def isFixedView(self, isFixedView):
+        if self._isFixedView != isFixedView:
+            self._isFixedView = isFixedView
+            self.isFixedViewChanged.emit()
 
 
 @QmlElement
@@ -227,7 +246,9 @@ class Bridge(QObject):
                         elif name == '_name':
                             save_data[name] = path.stem
                         elif name == '_algoModel':
-                            save_data[name] = [value[0].toPlainData(), value[1].toPlainData()]
+                            save_data[name] = [
+                                value[0].toPlainData(), value[1].toPlainData()
+                            ]
                         else:
                             save_data[name] = value
                     else:

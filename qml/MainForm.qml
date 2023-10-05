@@ -1,6 +1,6 @@
 ﻿import QtQuick
 import QtQuick.Dialogs
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import KmcUI.Window
 import KmcUI.Controls
@@ -11,6 +11,7 @@ import Qt.labs.settings
 import QtCore
 import "./controls"
 import "./components"
+import "./scripts/Icon.js" as MdiFont
 import CvTools
 
 ShadowWindow {
@@ -45,6 +46,25 @@ ShadowWindow {
         font.pointSize: 9
         horizontalAlignment: Text.AlignHCenter
         elide: Text.ElideRight
+        MyBubbleToolTip {
+            id: titleToolTip
+            location: KmcUI.Bottom
+        }
+
+        HoverHandler {
+            id: hoverHandler
+        }
+
+        states: State {
+            when: !!root.sessionData
+            PropertyChanges {
+                titleText.text: root.sessionData.name
+                titleToolTip {
+                    visible: hoverHandler.hovered
+                    text: root.sessionData.fileName + " - " + root.sessionData.name + " - " + root.appName
+                }
+            }
+        }
     }
 
     title {
@@ -59,7 +79,7 @@ ShadowWindow {
         id: backgroundRect
         radius: 10
         color: "#1F1F1F"
-        border.color: "#404040"
+        border.color: "#59595a"
         Binding {
             when: root.visibility === Window.Maximized
             backgroundRect.border.width: 0
@@ -67,11 +87,47 @@ ShadowWindow {
         }
     }
     statusBar: KmcRectangle {
+        id: statusBar
         topBorder.color: "#2b2b2b"
         color: "#181818"
         height: 22
         leftBottomRadius: backgroundRect.radius
         rightBottomRadius: leftBottomRadius
+
+        Row {
+            anchors.right: parent.right
+            anchors.rightMargin: 9
+            Button {
+                id: notification
+                height: statusBar.height
+                width: height
+                background: Rectangle {
+                    color: notification.pressed ? "#424242" : notification.hovered ? "#343434" : "transparent"
+                }
+
+                MyTextIcon {
+                    anchors.centerIn: parent
+                    text: mainFormSettings.notifiable ? (mainFormSettings.notificationList.length
+                                                         > 0 ? MdiFont.Icon.bellBadgeOutline : MdiFont.Icon.bellOutline) : MdiFont.Icon.bellOffOutline
+                    color: "#c2c2c2"
+                }
+                MyBubbleToolTip {
+                    location: KmcUI.Top
+                    visible: notification.hovered
+                    onVisibleChanged: {
+                        if (visible) {
+                            const parentCoordinate = notification.mapToItem(statusBar,
+                                                                            Qt.point(parent.x,
+                                                                                     parent.y))
+                            arrow.position = parentCoordinate.x + parent.width / 2 - (parentCoordinate.x + x)
+                        }
+                    }
+                    text: mainFormSettings.notifiable ? (mainFormSettings.notificationList.length
+                                                         > 0 ? mainFormSettings.notificationList.length
+                                                               + " New Notifications" : "No Notifications") : "Hide Notifications"
+                }
+            }
+        }
     }
 
     width: mainFormSettings.windowSize.width
@@ -95,10 +151,8 @@ ShadowWindow {
     onSessionDataChanged: {
         if (sessionData) {
             testbedPageLoader.item.sessionData = root.sessionData
-            titleText.text = root.sessionData.fileName + " - " + root.sessionData.name + " - " + root.appName
             stackLayout.switchTo(MainForm.PageType.Testbed)
         } else {
-            titleText.text = root.appName
             stackLayout.switchTo(MainForm.PageType.Welcome)
         }
     }
@@ -121,8 +175,9 @@ ShadowWindow {
         Action {
             required property var algorithm
             onTriggered: {
-                sessionData.algoModel[Number(sessionData.isClonedView
-                                             && !algoList.activeFocus)].append(algorithm)
+                sessionData.algoModel[Number(sessionData.isContrastView
+                                             && !algoList.activeFocus)].append(
+                            algorithm.newInstance())
             }
         }
     }
@@ -163,6 +218,8 @@ ShadowWindow {
         property string recentSaveFolder: Qt.resolvedUrl(".")
         property string recentSession
         property size windowSize: Qt.size(1024, 600)
+        property var notificationList: []
+        property bool notifiable: value
     }
 
     Bridge {
@@ -338,26 +395,39 @@ ShadowWindow {
                     onTriggered: exportFileDialog.open()
                     enabled: !!root.sessionData
                 }
+
+                MyMenuSeparator {}
+
+                Action {
+                    text: qsTr("Exit")
+                    onTriggered: Qt.quit()
+                }
             },
             MyMenu {
                 id: viewMenu
                 title: "&View"
-                Action {
-                    text: root.sessionData?.isClonedView ? qsTr("Close Cloned View") : qsTr(
-                                                               "Clone Current Image/Video")
+                MyMenuItem {
+                    text: root.sessionData?.isContrastView ? qsTr("Close Contrast View") : qsTr(
+                                                                 "Show Contrast View")
                     enabled: !!root.sessionData
                     onTriggered: {
-                        root.sessionData.isClonedView = !root.sessionData.isClonedView
+                        root.sessionData.isContrastView = !root.sessionData.isContrastView
+                    }
+                    indicator: MyTextIcon {
+                        x: (parent.textPadding - contentWidth) / 2
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: MdiFont.Icon.contrast
+                        color: parent.textColor
                     }
                 }
 
                 Action {
-                    text: "Fixed Image"
+                    text: qsTr("Fixed View")
                     checkable: true
-                    checked: true
+                    checked: root.sessionData?.isFixedView ?? false
                     enabled: !!root.sessionData
                     onTriggered: {
-
+                        root.sessionData.isFixedView = !root.sessionData.isFixedView
                     }
                 }
             },
@@ -399,6 +469,7 @@ ShadowWindow {
             id: menuBarItem
             implicitWidth: 18 + menuItemText.contentWidth
             contentItem: Text {
+                anchors.centerIn: parent
                 id: menuItemText
                 text: menuBarItem.text
                 color: "#cccccc"
@@ -477,7 +548,6 @@ ShadowWindow {
             }
             color: root.title.color
             rightBorder.color: "#2A2A2A"
-            leftBottomRadius: backgroundRect.radius
             MyAppBar {
                 id: topAppBar
                 currentIndex: 0
@@ -515,7 +585,7 @@ ShadowWindow {
                 imageMouseArea: testbedPageLoader.item?.imageMouseArea
                 algoModel: root.sessionData?.algoModel[0]
                 color: "#181818"
-                clip: true
+
                 title: topAppItems.get(sidePage.stackLayout.currentIndex).name
 
                 function switchTo(sidePageType) {

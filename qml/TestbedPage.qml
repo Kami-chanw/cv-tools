@@ -3,6 +3,7 @@ import KmcUI.Effects
 import QtQuick.Controls
 import CvTools
 import "./controls"
+import "./components"
 
 Item {
     id: root
@@ -32,17 +33,17 @@ Item {
             if (tokens[tokens.length - 2] === "0")
                 image.source = source
             else
-                clonedImage.source = source
+                contrastImage.source = source
         }
     }
 
     Connections {
         target: sessionData
-        function onIsClonedViewChanged() {
-            if (sessionData.isClonedView) {
-                splitView.addItem(clonedViewToolBox)
+        function onIsContrastViewChanged() {
+            if (sessionData.isContrastView) {
+                splitView.addItem(contrastViewToolBox)
             } else
-                splitView.removeItem(clonedViewToolBox)
+                splitView.removeItem(contrastViewToolBox)
         }
     }
 
@@ -58,191 +59,30 @@ Item {
             SplitView.fillHeight: true
             SplitView.fillWidth: true
 
-            property int originX: (image.width - image.paintedWidth) / 2
-            property int originY: (image.height - image.paintedHeight) / 2
+            property point origin: root.sessionData?.isFixedView ? Qt.point(
+                                                                       (image.width - image.paintedWidth)
+                                                                       / 2, (image.height
+                                                                             - image.paintedHeight) / 2) : Qt.point(
+                                                                       image.x + (1 - image.scale) * image.width
+                                                                       / 2, image.y + (1 - image.scale)
+                                                                       * image.height / 2)
 
-            function isInPaintedImage(px, py) {
-                // left-top of painted image
-                return originX <= px && px <= originX + image.paintedWidth && originY <= py
-                        && py <= originY + image.paintedHeight
-            }
-            Image {
-                id: image
-                fillMode: Image.PreserveAspectFit
-                anchors.fill: parent
-            }
-            Image {
-                id: clonedImage
-                visible: root.sessionData?.isClonedView ?? false
-                fillMode: Image.PreserveAspectFit
-                anchors.fill: image
-            }
-            Rectangle {
-                id: mask
-                color: Qt.rgba(20 / 255, 20 / 255, 20 / 255, 0.6)
-                anchors.fill: image
-                visible: false
+            property int validWidth: image.scale * image.paintedWidth
+            property int validHeight: image.scale * image.paintedHeight
+            property int imageWidth: root.sessionData?.imageSize.width ?? 0
+            property int imageHeight: root.sessionData?.imageSize.height ?? 0
 
-                property int dotRadius: 3
-
-                function isInPaintedImage() {
-                    for (var d of mask.data) {
-                        if (!container.isInPaintedImage(d.centerX(), d.centerY()))
-                            return false
-                    }
-                    return true
-                }
+            function isInValidRegion(px, py) {
+                return origin.x <= px && px <= origin.x + validWidth && origin.y <= py
+                        && py <= origin.y + validHeight
             }
 
-            Component {
-                id: dot
-                Rectangle {
-                    id: path
-                    radius: mask.dotRadius
-                    width: radius * 2
-                    height: width
-
-                    function centerX() {
-                        return x + radius
-                    }
-                    function centerY() {
-                        return y + radius
-                    }
-
-                    function isInClickRange(x, y) {
-                        return Math.abs(centerX() - x) <= 1.5 * radius && Math.abs(
-                                    centerY() - y) <= 1.5 * radius
-                    }
-
-                    // for drag
-                    property int cacheX: 0
-                    property int cacheY: 0
-
-                    property bool dragEnabled
-                    onXChanged: {
-                        if (!(container.originX <= x + radius
-                              && x + radius <= container.originX + image.paintedWidth)) {
-                            dragHandler.enabled = false
-                            dotDragHandler.enabled = false
-                        } else
-                            dotDragHandler.enabled = dragEnabled
-                    }
-                    onYChanged: {
-                        if (!(container.originY <= y + radius
-                              && y + radius <= container.originY + image.paintedHeight)) {
-                            dragHandler.enabled = false
-                            dotDragHandler.enabled = false
-                        } else
-                            dotDragHandler.enabled = dragEnabled
-                    }
-
-                    color: "#0078D4"
-                    Drag.source: path
-                    Drag.active: dotDragHandler.active
-
-                    DragHandler {
-                        id: dotDragHandler
-                        cursorShape: Qt.OpenHandCursor
-                        onActiveChanged: {
-                            if (!active) {
-                                path.x = Math.max(container.originX,
-                                                  Math.min(container.originX + image.paintedWidth,
-                                                           path.centerX())) - path.radius
-                                path.y = Math.max(container.originY,
-                                                  Math.min(container.originY + image.paintedHeight,
-                                                           path.centerY())) - path.radius
-                            }
-                        }
-                    }
-                }
-            }
-
-            Canvas {
-                id: canvas
-                width: image.width
-                height: image.height
-                Drag.active: dragHandler.active
-                Drag.source: canvas
-                DragHandler {
-                    id: dragHandler
-                    cursorShape: Qt.OpenHandCursor
-                    enabled: false
-                    onActiveTranslationChanged: {
-                        for (var d of mask.data) {
-                            d.x = activeTranslation.x + d.cacheX
-                            d.y = activeTranslation.y + d.cacheY
-                        }
-                    }
-
-                    onActiveChanged: {
-                        if (active) {
-                            for (var d of mask.data) {
-                                d.cacheX = d.x
-                                d.cacheY = d.y
-                            }
-                        } else {
-                            for (d of mask.data) {
-                                if (d.centerX() < container.originX) {
-                                    var deltaX = container.originX - d.centerX()
-                                    for (var p of mask.data)
-                                        p.x += deltaX
-                                } else if (d.centerX() > container.originX + image.paintedWidth) {
-                                    deltaX = container.originX + image.paintedWidth - d.centerX()
-                                    for (p of mask.data)
-                                        p.x += deltaX
-                                }
-
-                                if (d.centerY() < container.originY) {
-                                    var deltaY = container.originY - d.centerY()
-                                    for (p of mask.data) {
-                                        p.y += deltaY
-                                    }
-                                } else if (d.centerY() > container.originY + image.paintedHeight) {
-                                    deltaY = container.originY + image.paintedHeight - d.centerY()
-                                    for (p of mask.data)
-                                        p.y += deltaY
-                                }
-                            }
-                            canvas.x = canvas.y = 0
-                            canvas.repaint()
-                        }
-                    }
-                }
-
-                visible: false
-                contextType: "2d"
-                onPaint: {
-                    if (mask.children.length === 0)
-                        return
-                    let ctx = context
-                    ctx.strokeStyle = "#0078D4"
-                    ctx.fillStyle = "#449CDCFE"
-                    ctx.beginPath()
-                    ctx.moveTo(mask.children[0].centerX(), mask.children[0].centerY())
-                    for (var i = 1; i < mask.children.length; ++i)
-                        ctx.lineTo(mask.children[i].centerX(), mask.children[i].centerY())
-                    if (!imageMouseArea.isSelecting)
-                        ctx.closePath()
-                    ctx.stroke()
-                    ctx.fill()
-                }
-
-                function repaint() {
-                    if (!dragHandler.active) {
-                        context.clearRect(0, 0, canvas.width, canvas.height)
-                        requestPaint()
-                    }
-                }
-
-                function isInShape(x, y) {
-                    return context?.isPointInPath(x, y) ?? false
-                }
-            }
             MouseArea {
                 id: imageMouseArea
-                anchors.fill: image
+                anchors.fill: parent
                 hoverEnabled: true
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
+                cursorShape: dragHandler.enabled ? Qt.SizeAllCursor : Qt.ArrowCursor
 
                 // the following properties is prepared for AlgoWidgets
                 property int selectorType
@@ -258,15 +98,15 @@ Item {
                 function finishSelection() {
                     isSelecting = false
                     let result = []
-                    const originalSize = sessionData.imageSize
                     for (var child of mask.children) {
                         let projectedX = (child.centerX(
-                                              ) - container.originX) * originalSize.width / image.paintedWidth
+                                              ) - container.origin.x) * container.imageWidth / container.validWidth
                         let projectedY = (child.centerY(
-                                              ) - container.originY) * originalSize.height / image.paintedHeight
-                        result.push(Qt.point(Math.min(Math.max(0, projectedX), originalSize.width),
+                                              ) - container.origin.y) * container.imageHeight / container.validHeight
+                        result.push(Qt.point(Math.min(Math.max(0, projectedX),
+                                                      container.imageWidth),
                                              Math.min(Math.max(0, projectedY),
-                                                      originalSize.height)))
+                                                      container.imageHeight)))
                     }
                     mask.children = []
                     canvas.repaint()
@@ -276,36 +116,26 @@ Item {
                 }
 
                 onClicked: mouse => {
-
                                switch (selectorType) {
                                    case Enums.SelectorType.Polygon:
                                    case Enums.SelectorType.Auto:
                                    if (mouse.button === Qt.LeftButton) {
-                                       if (!isSelecting || !container.isInPaintedImage(mouseX,
-                                                                                       mouseY)) {
+                                       if (!isSelecting || !container.isInValidRegion(mouseX,
+                                                                                      mouseY)) {
+
                                            return
                                        }
-                                       if (mask.data.length > 2
-                                           && selectorType === Enums.SelectorType.Auto
-                                           && mask.data[0].isInClickRange(mouseX, mouseY)) {
+                                       let d = dot.createObject(mask, {
+                                                                    "x": mouseX - mask.dotRadius,
+                                                                    "y": mouseY - mask.dotRadius,
+                                                                    "dragEnabled": true
+                                                                })
+                                       d.xChanged.connect(canvas.repaint)
+                                       d.yChanged.connect(canvas.repaint)
+                                       mask.children.push(d)
+                                       if (mask.children.length === pointCount) {
                                            isSelecting = false
-                                       } else {
-                                           let d = dot.createObject(mask, {
-                                                                        "x": mouseX - mask.dotRadius,
-                                                                        "y": mouseY - mask.dotRadius,
-                                                                        "dragEnabled": true
-                                                                    })
-                                           d.xChanged.connect(canvas.repaint)
-                                           d.yChanged.connect(canvas.repaint)
-                                           mask.data.push(d)
-                                           if (mask.data.length === pointCount) {
-                                               isSelecting = false
-                                           }
                                        }
-                                   } else if (mouse.button === Qt.RightButton) {
-                                       mask.data = mask.data.filter(d => !d.isInClickRange(mouseX,
-                                                                                           mouseY))
-                                       isSelecting = true
                                    }
 
                                    canvas.repaint()
@@ -317,11 +147,8 @@ Item {
                 onPressed: mouse => {
                                if (mouse.button !== Qt.LeftButton)
                                return
-                               dragHandler.enabled = !isSelecting && canvas.isInShape(mouseX,
-                                                                                      mouseY)
-                               if (!isSelecting || !container.isInPaintedImage(mouseX, mouseY))
+                               if (!isSelecting || !container.isInValidRegion(mouseX, mouseY))
                                return
-
                                switch (selectorType) {
                                    case Enums.SelectorType.Polygon:
                                    break
@@ -369,7 +196,7 @@ Item {
                            }
 
                 onPositionChanged: {
-                    if (!isSelecting || !container.isInPaintedImage(mouseX, mouseY))
+                    if (!isSelecting || !container.isInValidRegion(mouseX, mouseY))
                         return
                     switch (selectorType) {
                     case Enums.SelectorType.Polygon:
@@ -388,7 +215,7 @@ Item {
                 }
 
                 onReleased: {
-                    if (!isSelecting || !container.isInPaintedImage(mouseX, mouseY))
+                    if (!isSelecting || !container.isInValidRegion(mouseX, mouseY))
                         return
                     switch (selectorType) {
                     case Enums.SelectorType.Polygon:
@@ -399,11 +226,238 @@ Item {
                 }
             }
 
+            Image {
+                id: image
+                WheelHandler {
+                    id: imgWheelHandler
+                    property: "scale"
+                    acceptedModifiers: Qt.ControlModifier
+                    enabled: !mask.visible
+                }
+
+                DragHandler {
+                    acceptedModifiers: Qt.ControlModifier
+                    enabled: imgWheelHandler.enabled
+                }
+
+                states: [
+                    State {
+                        when: !root.sessionData?.isFixedView ?? true
+                        PropertyChanges {
+                            image {
+                                width: root.sessionData?.imageSize.width
+                                height: root.sessionData?.imageSize.widt
+                            }
+                        }
+                    },
+                    State {
+                        when: root.sessionData?.isFixedView ?? false
+                        PropertyChanges {
+                            image {
+                                anchors.fill: container
+                                fillMode: Image.PreserveAspectFit
+                                scale: 1
+                            }
+                            imgWheelHandler.enabled: false
+                        }
+                    }
+                ]
+
+                onStateChanged: {
+                    if (state === "") {
+                        width = root.sessionData?.imageSize.width
+                        height = root.sessionData?.imageSize.height
+                    }
+                }
+            }
+
+            Rectangle {
+                color: "#66cdcdcd"
+                x: container.origin.x
+                y: container.origin.y
+
+                width: image.width
+                height: image.height
+            }
+
+            Image {
+                id: contrastImage
+                visible: root.sessionData?.isContrastView ?? false
+                fillMode: image.fillMode
+                anchors.fill: image
+            }
+            Rectangle {
+                id: mask
+                color: Qt.rgba(20 / 255, 20 / 255, 20 / 255, 0.6)
+                anchors.fill: parent
+                visible: false
+
+                property int dotRadius: 3
+            }
+
+            Component {
+                id: dot
+                Rectangle {
+                    id: path
+                    radius: mask.dotRadius
+                    width: radius * 2
+                    height: width
+
+                    function centerX() {
+                        return x + radius
+                    }
+                    function centerY() {
+                        return y + radius
+                    }
+
+                    // for drag
+                    property int cacheX: 0
+                    property int cacheY: 0
+
+                    property alias dragEnabled: dotDragHandler.enabled
+                    color: "#0078D4"
+                    Drag.source: path
+                    Drag.active: dotDragHandler.active
+
+                    TapHandler {
+                        acceptedButtons: Qt.LeftButton | Qt.RightButton
+                        onTapped: (_, button) => {
+                                      if (button & Qt.LeftButton) {
+                                          if (mask.children.length > 2
+                                              && imageMouseArea.selectorType === Enums.SelectorType.Auto
+                                              && path === mask.children[0]) {
+                                              imageMouseArea.isSelecting = false
+                                              canvas.repaint()
+                                          }
+                                      } else {
+                                          if (imageMouseArea.selectorType !== Enums.SelectorType.Rectangular) {
+                                              mask.children = mask.children.filter(d => d !== path)
+                                              imageMouseArea.isSelecting = true
+                                              canvas.repaint()
+                                          }
+                                      }
+                                  }
+                    }
+
+                    HoverHandler {
+                        cursorShape: hovered ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    }
+
+                    DragHandler {
+                        id: dotDragHandler
+                        onActiveChanged: {
+                            if (!active) {
+                                path.x = Math.max(container.origin.x,
+                                                  Math.min(container.origin.x + image.paintedWidth,
+                                                           path.centerX())) - path.radius
+                                path.y = Math.max(container.origin.y, Math.min(
+                                                      container.origin.y + image.paintedHeight,
+                                                      path.centerY())) - path.radius
+                            }
+                        }
+                    }
+                }
+            }
+
+            Canvas {
+                id: canvas
+                width: imageMouseArea.width
+                height: imageMouseArea.height
+                Drag.active: dragHandler.active
+                Drag.source: canvas
+
+                DragHandler {
+                    id: dragHandler
+                    enabled: active || (!imageMouseArea.isSelecting && canvas.isInShape(
+                                            imageMouseArea.mouseX, imageMouseArea.mouseY))
+                    onActiveTranslationChanged: {
+                        for (var d of mask.children) {
+                            d.x = activeTranslation.x + d.cacheX
+                            d.y = activeTranslation.y + d.cacheY
+                        }
+                    }
+
+                    onActiveChanged: {
+                        if (active) {
+                            for (var d of mask.children) {
+                                d.cacheX = d.x
+                                d.cacheY = d.y
+                            }
+                        } else {
+                            for (d of mask.children) {
+                                if (d.centerX() < container.origin.x) {
+                                    var deltaX = container.origin.x - d.centerX()
+                                    for (var p of mask.children)
+                                        p.x += deltaX
+                                } else if (d.centerX(
+                                               ) > container.origin.x + container.validWidth) {
+                                    deltaX = container.origin.x + container.validWidth - d.centerX()
+                                    for (p of mask.children)
+                                        p.x += deltaX
+                                }
+
+                                if (d.centerY() < container.origin.y) {
+                                    var deltaY = container.origin.y - d.centerY()
+                                    for (p of mask.children) {
+                                        p.y += deltaY
+                                    }
+                                } else if (d.centerY(
+                                               ) > container.origin.y + container.validHeight) {
+                                    deltaY = container.origin.y + container.validHeight - d.centerY(
+                                                )
+                                    for (p of mask.children)
+                                        p.y += deltaY
+                                }
+                            }
+                            canvas.x = canvas.y = 0
+                            canvas.repaint()
+                        }
+                    }
+                }
+
+                visible: false
+                contextType: "2d"
+                onPaint: {
+                    if (mask.children.length === 0)
+                        return
+                    let ctx = context
+                    ctx.strokeStyle = "#0078D4"
+                    ctx.fillStyle = "#449CDCFE"
+                    ctx.beginPath()
+                    ctx.moveTo(mask.children[0].centerX(), mask.children[0].centerY())
+                    for (var i = 1; i < mask.children.length; ++i)
+                        ctx.lineTo(mask.children[i].centerX(), mask.children[i].centerY())
+                    if (!imageMouseArea.isSelecting
+                            || imageMouseArea.selectorType === Enums.SelectorType.Rectangular)
+                        ctx.closePath()
+                    ctx.stroke()
+                    ctx.fill()
+                }
+
+                function repaint() {
+                    if (!dragHandler.active) {
+                        context.clearRect(0, 0, canvas.width, canvas.height)
+                        requestPaint()
+                    }
+                }
+
+                function isInShape(x, y) {
+                    // canvas.isInShape will crash the app if 4 points at the same place
+                    if (imageMouseArea.selectorType === Enums.SelectorType.Rectangular)
+                        for (var i = 1; i < mask.children.length; ++i) {
+                            if (mask.children[i].x - mask.children[0].x < 1
+                                    && mask.children[i].y - mask.children[0].y < 1)
+                                return false
+                        }
+                    return mask.children.length > 2 && (context?.isPointInPath(x, y) ?? false)
+                }
+            }
+
             MySplitHandle {
                 id: splitHandle
                 height: parent.height
                 width: 2
-                visible: root.sessionData?.isClonedView ?? false
+                visible: root.sessionData?.isContrastView ?? false
                 onVisibleChanged: x = (root.width - width) / 2
                 activeColor: "grey"
                 MouseArea {
@@ -431,8 +485,12 @@ Item {
         }
     }
 
-    MyToolBox {
-        id: clonedViewToolBox
+    SidePage {
+        id: contrastViewToolBox
         SplitView.preferredWidth: 200
+        color: "#181818"
+        title: "Contrast"
+        algoModel: root.sessionData?.algoModel[1]
+        imageMouseArea: imageMouseArea
     }
 }

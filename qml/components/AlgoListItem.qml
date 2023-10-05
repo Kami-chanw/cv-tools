@@ -14,11 +14,11 @@ Flickable {
     property alias hovered: hoverHandler.hovered
     ScrollBar.vertical: MyScrollBar {}
     ScrollBar.horizontal: MyScrollBar {}
-    contentHeight: Math.max(240, list.height)
+    contentHeight: list.height
     contentWidth: list.width
     boundsBehavior: Flickable.StopAtBounds
 
-    height: Math.max(240, list.height)
+    height: list.height
 
     AlgoList {
         id: list

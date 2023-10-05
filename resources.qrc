@@ -4,11 +4,12 @@
         <file>assets/icons/testbed.svg</file>
         <file>assets/icons/settings.svg</file>
         <file>assets/logo.svg</file>
-        <file>assets/icons/close_tab.svg</file>
-        <file>assets/icons/apply.svg</file>
         <file>assets/icons/question.svg</file>
-        <file>assets/icons/check.svg</file>
         <file>test/106005131_p0_master1200.jpg</file>
         <file>assets/icons/ellipsis.svg</file>
+        <file>assets/font/sarasa-ui-sc-bold.ttf</file>
+        <file>assets/font/sarasa-ui-sc-regular.ttf</file>
+        <file>assets/font/sarasa-ui-sc-semibold.ttf</file>
+        <file>assets/font/materialdesignicons-webfont.ttf</file>
     </qresource>
 </RCC>

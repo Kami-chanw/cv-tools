@@ -22,8 +22,7 @@ Item {
             id: welcomeText
             color: "#cdcdcd"
             text: "No Image or Video Loaded"
-            font.pointSize: 25
-            font.weight: 300
+            font.pointSize: 28
             Layout.alignment: Qt.AlignCenter
             horizontalAlignment: Qt.AlignRight
         }

@@ -14,8 +14,6 @@
         "qml/controls/MyScrollBar.qml",
         "qml/controls/MyScrollView.qml",
         "qml/controls/MySplitView.qml",
-        "qml/controls/MyTreeView.qml",
-        "qml/controls/MyTreeViewDelegate.qml",
         "resources.qrc",
         "qml/controls/MyToolBox.qml",
         "qml/controls/MySplitHandle.qml",
@@ -31,7 +29,10 @@
         "qml/algo_controls/AlgoStackLayout.qml",
         "qml/algo_controls/AlgoList.qml",
         "qml/components/SidePage.qml",
-        "qml/controls/MyBubbleToolTip.qml"
+        "qml/controls/MyBubbleToolTip.qml",
+        "qml/scripts/Icon.js",
+        "qml/controls/MyTextIcon.qml",
+        "qml/controls/MyMenuItem.qml"
     ],
     "qmlImportPaths": [
         "3rdparty/KmcUI/src/imports"

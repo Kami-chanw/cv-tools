@@ -5,13 +5,13 @@ Button {
     id: control
     property var toolTip
     property alias toolTipEnabled: toolTip.enabled
-    display: AbstractButton.IconOnly
     palette.button: "#12ffffff"
     palette.light: "#21ffffff"
     icon.width: height
     icon.height: height
     icon.color: "#cccccc"
     padding: 2
+
     background: Rectangle {
         radius: 4
         color: control.checked ? control.palette.light : (mouseArea.containsMouse ? control.palette.button : "transparent")

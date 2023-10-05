@@ -2,6 +2,7 @@ import QtQuick
 import KmcUI.Controls
 import QtQuick.Controls
 import KmcUI
+import "../scripts/Icon.js" as MdiFont
 
 ToolBox {
     id: control
@@ -33,7 +34,7 @@ ToolBox {
                     }
     boxDelegate: ToolBoxDelegate {
         id: boxDelegate
-        implicitHeight: 22
+        implicitHeight: 23
         rightPadding: 4
         expanded: true
         contentItem: Item {
@@ -56,24 +57,38 @@ ToolBox {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.rightMargin: 3
-                spacing: 3
+                spacing: 4
                 visible: boxDelegate.hovered
                 MyIconButton {
                     height: boxDelegate.height - 2
                     width: height
-                    icon.source: "qrc:/assets/icons/apply.svg"
+                    display: Button.TextOnly
+
+                    contentItem: MyTextIcon {
+                        anchors.centerIn: parent
+                        color: parent.icon.color
+                        text: MdiFont.Icon.tune
+                    }
                     toolTip: "Enable/Disable effect"
                     checkable: true
                     checked: true
                     onClicked: {
                         boxDelegate.model.enabled = !boxDelegate.model.enabled
+                        boxDelegate.expanded = !boxDelegate.expanded
+                        boxDelegate.enabled = !boxDelegate.enabled
                         checked = !checked
                     }
                 }
                 MyIconButton {
                     height: boxDelegate.height - 2
                     width: height
-                    icon.source: "qrc:/assets/icons/close_tab.svg"
+                    display: Button.TextOnly
+                    contentItem: MyTextIcon {
+                        anchors.centerIn: parent
+                        color: parent.icon.color
+                        text: MdiFont.Icon.close
+                    }
+
                     toolTip: "Remove effect"
                     onClicked: {
                         control.model.remove(boxDelegate.index, 1)
@@ -84,34 +99,19 @@ ToolBox {
 
         background: Rectangle {
             anchors.fill: parent
-            color: "#1F1F1F"
+            color: "#181818"
             border.color: boxDelegate.highlighted ? "#0078D4" : "transparent"
         }
 
-        indicator: Item {
-            implicitHeight: 22
-            implicitWidth: 22
-
-            Canvas {
-                anchors.centerIn: parent
-                width: 19
-                height: width
-                rotation: boxDelegate.expanded ? 90 : 0
-                onPaint: {
-                    var ctx = getContext("2d")
-                    ctx.strokeStyle = "#dedfdf"
-                    const startX = 0.375 * width
-                    const startY = 0.25 * height
-                    ctx.moveTo(startX, startY)
-                    ctx.lineTo(width * 0.625, height / 2)
-                    ctx.lineTo(startX, height - startY)
-                    ctx.stroke()
-                }
-                Behavior on rotation {
-                    NumberAnimation {
-                        easing.type: Easing.InOutQuad
-                        duration: collapseAnim.duration
-                    }
+        indicator: MyTextIcon {
+            rotation: boxDelegate.expanded ? 90 : 0
+            font.pointSize: 15
+            text: MdiFont.Icon.chevronRight
+            color: "#dedfdf"
+            Behavior on rotation {
+                NumberAnimation {
+                    easing.type: Easing.InOutQuad
+                    duration: collapseAnim.duration
                 }
             }
         }

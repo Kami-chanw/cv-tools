@@ -72,3 +72,8 @@ CMakeLists.txt.user*
 # Binaries
 # --------
 *.exe
+
+Test.qml
+test.py
+test/*
+rc_resources.py

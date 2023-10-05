@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import KmcUI
+import "../scripts/Icon.js" as MdiFont
+import "../controls"
 
 CheckBox {
     id: control
@@ -24,13 +26,10 @@ CheckBox {
         implicitWidth: implicitHeight
         border.color: control.pressed ? "#3c3c3c" : (control.activeFocus ? "#0078D4" : "#3c3c3c")
         color: "#313131"
-        ColorIcon {
+        MyTextIcon {
             anchors.centerIn: parent
             visible: control.checked
-            width: 15
-            height: 15
-            color: "#cccccc"
-            source: "qrc:/assets/icons/check.svg"
+            text: MdiFont.Icon.check
         }
     }
 }

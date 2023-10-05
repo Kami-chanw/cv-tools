@@ -1,6 +1,8 @@
 import QtQuick
 import CvTools
+import QtQuick.Controls
 import "../controls"
+import "../scripts/Icon.js" as MdiFont
 
 Column {
     id: control
@@ -13,7 +15,7 @@ Column {
             id: content
             implicitHeight: contentColumn.height
             width: control.width
-            height: contentColumn.height + 15
+            height: contentColumn.height + 18
             color: loader.item?.activeFocus ? "#252728" : (hh.hovered ? "#232424" : "transparent")
 
             property var currentWidget: repeater.model.data(repeater.model.index(index, 0),
@@ -97,15 +99,19 @@ Column {
                         color: "white"
                         text: content.currentWidget?.title ?? ""
                         font.pointSize: 9
+                        verticalAlignment: Text.AlignVCenter
                     }
 
                     MyIconButton {
-                        icon.source: "qrc:/assets/icons/question.svg"
-                        icon.width: 15
-                        icon.height: 15
-                        icon.color: "#cccccc"
+                        display: Button.TextOnly
+                        contentItem: MyTextIcon {
+                            anchors.centerIn: parent
+                            text: MdiFont.Icon.helpCircleOutline
+                            font.pointSize: 11
+                        }
                         visible: !!content.currentWidget?.informativeText
                         background: Item {}
+
                         toolTip: content.currentWidget?.informativeText
                     }
                 }

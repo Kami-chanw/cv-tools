@@ -9,6 +9,7 @@ Rectangle {
     property alias stackLayout: stackLayout
     property alias imageMouseArea: algoList.imageMouseArea
     required property var algoModel
+    clip: true
     Item {
         id: sidePageTitle
         height: 32
@@ -58,16 +59,22 @@ Rectangle {
                     text: "Expand All Effects"
                     enabled: clearAll.enabled
                     onTriggered: {
-                        for (var i = 0; i < algoList.items.count; ++i)
-                            algoList.items.itemAt(i).expanded = true
+                        for (var i = 0; i < algoList.items.count; ++i) {
+                            var item = algoList.items.itemAt(i)
+                            if (item.enabled)
+                                item.expanded = true
+                        }
                     }
                 }
                 Action {
                     text: "Fold All Effects"
                     enabled: clearAll.enabled
                     onTriggered: {
-                        for (var i = 0; i < algoList.items.count; ++i)
-                            algoList.items.itemAt(i).expanded = false
+                        for (var i = 0; i < algoList.items.count; ++i) {
+                            var item = algoList.items.itemAt(i)
+                            if (item.enabled)
+                                item.expanded = false
+                        }
                     }
                 }
             }

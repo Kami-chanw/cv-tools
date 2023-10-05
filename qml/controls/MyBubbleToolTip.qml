@@ -3,13 +3,13 @@ import KmcUI
 import KmcUI.Controls
 
 BubbleToolTip {
-    location: KmcUI.Right
     shadowBlur: 5
     radius: 3
-    arrow.height: 8
-    arrow.width: 4
-    verticalPadding: 4
+    arrow.height: location === KmcUI.Left || location === KmcUI.Right ? 8 : 4
+    arrow.width: location === KmcUI.Left || location === KmcUI.Right ? 4 : 8
+    verticalPadding: 6
     horizontalPadding: 8
+    delay: 500
     border.color: "#494949"
     palette {
         toolTipBase: "#202020"

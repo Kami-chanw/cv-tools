@@ -9,7 +9,7 @@ class GrabCut(Algorithm):
 
     def __init__(self, parent: QObject = None) -> None:
         super().__init__('Select Foregound', 'Select foreground', parent)
-        self.selector = Selector(Selector.SelectorType.Rectangular,
+        self.selector = Selector(Selector.SelectorType.Auto,
                                  "Selector ROI")
         self.selector.currentValue = []
         self.addWidget(self.selector)
